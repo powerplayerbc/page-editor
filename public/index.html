@@ -309,9 +309,62 @@
         #stylesPanel .gjs-sm-property .gjs-sm-btn { color: var(--ed-txt-3) !important; }
         #stylesPanel .gjs-sm-property .gjs-sm-btn.active { color: var(--ed-accent) !important; }
 
-        /* Color picker */
-        #stylesPanel .gjs-field-color .gjs-field-colorp { border-color: var(--ed-border) !important; }
-        #stylesPanel .gjs-field-color .gjs-checker-bg { border-radius: 3px !important; }
+        /* Color picker — swatch */
+        #stylesPanel .gjs-field-color {
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+        }
+        #stylesPanel .gjs-field-color .gjs-field-colorp {
+            border-color: var(--ed-border) !important;
+            cursor: pointer !important;
+            min-width: 22px !important;
+            min-height: 22px !important;
+            border-radius: 4px !important;
+            flex-shrink: 0 !important;
+            position: relative !important;
+            z-index: 1 !important;
+        }
+        #stylesPanel .gjs-field-color .gjs-checker-bg {
+            border-radius: 3px !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        /* Color picker — the popup panel itself */
+        .gjs-color-picker,
+        .sp-container {
+            position: fixed !important;
+            z-index: 9500 !important;
+            background: var(--ed-surface-el) !important;
+            border: 1px solid var(--ed-border) !important;
+            border-radius: 8px !important;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+            padding: 8px !important;
+        }
+        /* Spectrum color picker overrides */
+        .sp-container { overflow: visible !important; }
+        .sp-picker-container { border: none !important; }
+        .sp-palette-container { border-color: var(--ed-border) !important; }
+        .sp-input {
+            background: var(--ed-surface) !important;
+            color: var(--ed-txt) !important;
+            border-color: var(--ed-border) !important;
+            border-radius: 4px !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.72rem !important;
+        }
+        .sp-cancel, .sp-choose {
+            font-family: 'Chakra Petch', system-ui !important;
+            font-size: 0.65rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.04em !important;
+        }
+        .sp-choose {
+            background: var(--ed-accent-dim) !important;
+            color: var(--ed-accent) !important;
+            border-color: rgba(6,214,160,0.3) !important;
+        }
+        .sp-cancel { color: var(--ed-txt-3) !important; }
 
         /* Number input with units */
         #stylesPanel .gjs-field-integer,
@@ -356,6 +409,17 @@
         }
         #traitsPanel .gjs-field input,
         #traitsPanel .gjs-field select { color: var(--ed-txt) !important; }
+
+        /* Allow color picker popups to escape sidebar overflow */
+        #sidebarRight { overflow: visible !important; }
+        #sidebarRight .right-panel { overflow-y: auto; overflow-x: visible; }
+        #stylesPanel { overflow: visible !important; }
+        #stylesPanel .gjs-sm-sectors { overflow: visible !important; }
+        #stylesPanel .gjs-sm-sector { overflow: visible !important; }
+        #stylesPanel .gjs-sm-properties { overflow: visible !important; }
+        #stylesPanel .gjs-sm-property { overflow: visible !important; }
+        #stylesPanel .gjs-field { overflow: visible !important; }
+        #stylesPanel .gjs-field-color { overflow: visible !important; }
 
         /* Sidebar scrollbar */
         #sidebarLeft ::-webkit-scrollbar,
@@ -1285,6 +1349,88 @@
         }, true);
     }
 
+    /* ── Color Swatch Click Fix ── */
+
+    function fixColorSwatchClicks() {
+        // Event delegation: when a color swatch area is clicked, trigger the
+        // underlying spectrum input that GrapesJS may have buried or overlapped
+        document.getElementById('sidebarRight').addEventListener('click', (e) => {
+            const colorp = e.target.closest('.gjs-field-colorp');
+            if (!colorp) return;
+            // Find the spectrum input inside the same .gjs-field-color
+            const field = colorp.closest('.gjs-field-color');
+            if (!field) return;
+            const specInput = field.querySelector('input.sp-input, input[data-colorpicker]');
+            if (specInput) {
+                specInput.click();
+                return;
+            }
+            // If there's a hidden input that triggers spectrum, try that
+            const hiddenInput = field.querySelector('input');
+            if (hiddenInput) {
+                hiddenInput.focus();
+                hiddenInput.click();
+            }
+        });
+    }
+
+    /* ── Color Picker Fix ── */
+
+    function initColorPickerFix() {
+        // MutationObserver watches for spectrum color picker popups appearing
+        const observer = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                for (const node of m.addedNodes) {
+                    if (node.nodeType !== 1) continue;
+                    // Spectrum adds .sp-container to body
+                    if (node.classList && node.classList.contains('sp-container')) {
+                        repositionColorPicker(node);
+                    }
+                }
+                // Also catch show/hide via attribute changes
+                if (m.type === 'attributes' && m.target.classList && m.target.classList.contains('sp-container')) {
+                    if (!m.target.classList.contains('sp-hidden')) {
+                        repositionColorPicker(m.target);
+                    }
+                }
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+    }
+
+    function repositionColorPicker(picker) {
+        // Find which swatch triggered this picker by looking for the most recently clicked color field
+        requestAnimationFrame(() => {
+            const allSwatches = document.querySelectorAll('#stylesPanel .gjs-field-colorp');
+            let activeSwatch = null;
+            // The active swatch is the one whose parent .gjs-field-color has the picker
+            for (const sw of allSwatches) {
+                const field = sw.closest('.gjs-field-color');
+                if (field && field.querySelector('.sp-container:not(.sp-hidden)')) {
+                    activeSwatch = sw;
+                    break;
+                }
+            }
+
+            if (!activeSwatch) {
+                // Fallback: position near the right sidebar
+                const sidebar = document.getElementById('sidebarRight');
+                if (sidebar) {
+                    const rect = sidebar.getBoundingClientRect();
+                    picker.style.position = 'fixed';
+                    picker.style.left = (rect.left - picker.offsetWidth - 10) + 'px';
+                    picker.style.top = Math.max(60, rect.top + 50) + 'px';
+                }
+                return;
+            }
+
+            const rect = activeSwatch.getBoundingClientRect();
+            picker.style.position = 'fixed';
+            picker.style.left = (rect.left - picker.offsetWidth - 10) + 'px';
+            picker.style.top = Math.max(60, rect.top - 20) + 'px';
+        });
+    }
+
     /* ── Quick Action Bar Functions ── */
 
     function qbStyle(prop, value) {
@@ -1580,6 +1726,9 @@
         loadSites();
         // Delay tooltip init so GrapesJS has rendered blocks
         setTimeout(initTooltips, 1000);
+        // Fix color picker positioning + ensure swatches are clickable
+        initColorPickerFix();
+        fixColorSwatchClicks();
     });
     </script>
 </body>
