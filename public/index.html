@@ -345,6 +345,83 @@
             background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
         }
         #codeModal.show { display: flex; }
+
+        /* ── Block Tooltips ── */
+        #blocksPanel .gjs-block { position: relative !important; }
+        #blocksPanel .gjs-block[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            left: 105%; top: 50%; transform: translateY(-50%);
+            z-index: 300;
+            background: var(--ed-surface-hi);
+            border: 1px solid var(--ed-border);
+            color: var(--ed-txt-2);
+            font-family: 'IBM Plex Sans', system-ui;
+            font-size: 0.68rem; font-weight: 400;
+            text-transform: none; letter-spacing: 0;
+            padding: 6px 10px;
+            border-radius: 5px;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+
+        /* ── Panel Help Headers ── */
+        .panel-help {
+            padding: 8px 10px;
+            font-size: 0.65rem;
+            color: var(--ed-txt-3);
+            line-height: 1.5;
+            border-bottom: 1px solid var(--ed-border);
+            background: rgba(255,255,255,0.015);
+        }
+        .panel-help strong { color: var(--ed-txt-2); }
+
+        /* ── Quick Action Bar ── */
+        #quickBar {
+            display: none;
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 200;
+            background: var(--ed-surface-el);
+            border: 1px solid var(--ed-border);
+            border-radius: 8px;
+            padding: 4px 6px;
+            gap: 2px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            align-items: center;
+        }
+        #quickBar.show { display: flex; }
+        .qb-btn {
+            width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            border: none; background: transparent; color: var(--ed-txt-3);
+            border-radius: 4px; cursor: pointer;
+            transition: background 0.12s, color 0.12s;
+            position: relative;
+        }
+        .qb-btn:hover { background: rgba(255,255,255,0.06); color: var(--ed-txt); }
+        .qb-btn.active { background: var(--ed-accent-dim); color: var(--ed-accent); }
+        .qb-btn[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 110%; left: 50%; transform: translateX(-50%);
+            background: var(--ed-surface-hi);
+            border: 1px solid var(--ed-border);
+            color: var(--ed-txt-2);
+            font-family: 'IBM Plex Sans', system-ui;
+            font-size: 0.62rem;
+            text-transform: none;
+            letter-spacing: 0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .qb-sep { width: 1px; height: 20px; background: var(--ed-border); margin: 0 3px; }
+        .qb-label { font-size: 0.58rem; color: var(--ed-txt-3); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 5px; }
     </style>
 </head>
 <body>
@@ -411,8 +488,12 @@
                     <button class="sidebar-tab active" onclick="showLeftTab('blocks')">Blocks</button>
                     <button class="sidebar-tab" onclick="showLeftTab('layers')">Layers</button>
                 </div>
-                <div id="blocksPanel" class="sidebar-panel active"></div>
-                <div id="layersPanel" class="sidebar-panel"></div>
+                <div id="blocksPanel" class="sidebar-panel active">
+                    <div class="panel-help"><strong>Drag blocks</strong> onto the canvas to add sections. Hover over a block to see what it does.</div>
+                </div>
+                <div id="layersPanel" class="sidebar-panel">
+                    <div class="panel-help"><strong>Layer tree</strong> shows every element on the page. Click to select, drag to reorder, toggle visibility.</div>
+                </div>
             </div>
 
             <!-- Center: GrapesJS Canvas -->
@@ -427,8 +508,12 @@
                     <button class="right-tab" onclick="showRightTab('traits')">Settings</button>
                     <button class="right-tab" onclick="showRightTab('classes')">Classes</button>
                 </div>
-                <div id="stylesPanel" class="right-panel active"></div>
-                <div id="traitsPanel" class="right-panel"></div>
+                <div id="stylesPanel" class="right-panel active">
+                    <div class="panel-help"><strong>Select an element</strong> on the canvas, then change its size, text, colors, and layout here.</div>
+                </div>
+                <div id="traitsPanel" class="right-panel">
+                    <div class="panel-help"><strong>Element settings</strong> like links, IDs, alt text, and data-module attributes.</div>
+                </div>
                 <div id="classesPanel" class="right-panel">
                     <div id="classEditorPanel">
                         <label>Tailwind / CSS Classes</label>
@@ -441,6 +526,46 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Quick Action Bar (appears when an element is selected) -->
+    <div id="quickBar">
+        <span class="qb-label">Align</span>
+        <button class="qb-btn" title="Align left" onclick="qbStyle('text-align','left')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3h10M2 6h6M2 9h8M2 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </button>
+        <button class="qb-btn" title="Align center" onclick="qbStyle('text-align','center')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3h10M4 6h6M3 9h8M4.5 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </button>
+        <button class="qb-btn" title="Align right" onclick="qbStyle('text-align','right')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3h10M6 6h6M4 9h8M7 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </button>
+        <div class="qb-sep"></div>
+        <span class="qb-label">Text</span>
+        <button class="qb-btn" title="Bold" onclick="qbStyle('font-weight','700')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 2h4a3 3 0 010 6H4V2z" stroke="currentColor" stroke-width="1.5"/><path d="M4 8h5a3 3 0 010 6H4V8z" stroke="currentColor" stroke-width="1.5"/></svg>
+        </button>
+        <button class="qb-btn" title="Smaller text" onclick="qbFontSize(-2)">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 7h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><text x="1" y="4" fill="currentColor" font-size="4" font-family="sans-serif">A</text></svg>
+        </button>
+        <button class="qb-btn" title="Larger text" onclick="qbFontSize(2)">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 7h6M7 4v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><text x="0" y="4" fill="currentColor" font-size="4" font-family="sans-serif">A</text></svg>
+        </button>
+        <div class="qb-sep"></div>
+        <span class="qb-label">Layout</span>
+        <button class="qb-btn" title="Center this element (auto margins)" onclick="qbStyle('margin','0 auto')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4" y="3" width="6" height="8" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M1 3v8M13 3v8" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-dasharray="1.5 1.5"/></svg>
+        </button>
+        <button class="qb-btn" title="Add padding" onclick="qbStyle('padding','1.5rem')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="1" stroke="currentColor" stroke-width="1" stroke-dasharray="2 1.5"/><rect x="3.5" y="3.5" width="7" height="7" rx="0.5" fill="currentColor" opacity="0.3"/></svg>
+        </button>
+        <div class="qb-sep"></div>
+        <button class="qb-btn" title="Duplicate element" onclick="qbDuplicate()">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="8" height="8" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M5 3V2a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1h-1" stroke="currentColor" stroke-width="1.2"/></svg>
+        </button>
+        <button class="qb-btn" title="Delete element" onclick="qbDelete()" style="color:var(--ed-danger);">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 4h8M5 4V3a1 1 0 011-1h2a1 1 0 011 1v1M4 4v7a1 1 0 001 1h4a1 1 0 001-1V4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </button>
     </div>
 
     <!-- Toast -->
@@ -542,10 +667,71 @@
             styleManager: {
                 appendTo: '#stylesPanel',
                 sectors: [
-                    { name: 'Dimension', open: false, properties: ['width','min-width','max-width','height','min-height','max-height','padding','margin'] },
-                    { name: 'Typography', open: false, properties: ['font-family','font-size','font-weight','letter-spacing','color','line-height','text-align','text-decoration','text-transform'] },
-                    { name: 'Decorations', open: false, properties: ['background-color','background','border-radius','border','box-shadow','opacity'] },
-                    { name: 'Layout', open: false, properties: ['display','flex-direction','justify-content','align-items','gap','position','top','right','bottom','left','z-index','overflow'] },
+                    {
+                        name: 'Size & Spacing',
+                        open: false,
+                        properties: [
+                            { property: 'width', label: 'Width' },
+                            { property: 'max-width', label: 'Max Width' },
+                            { property: 'height', label: 'Height' },
+                            { property: 'min-height', label: 'Min Height' },
+                            { property: 'padding', label: 'Inner Spacing (Padding)' },
+                            { property: 'margin', label: 'Outer Spacing (Margin)' },
+                        ],
+                    },
+                    {
+                        name: 'Text & Fonts',
+                        open: false,
+                        properties: [
+                            { property: 'font-family', label: 'Font' },
+                            { property: 'font-size', label: 'Text Size' },
+                            { property: 'font-weight', label: 'Weight (100=thin, 700=bold)' },
+                            { property: 'line-height', label: 'Line Spacing' },
+                            { property: 'letter-spacing', label: 'Letter Spacing' },
+                            { property: 'color', label: 'Text Color' },
+                            {
+                                property: 'text-align',
+                                label: 'Text Alignment',
+                                type: 'radio',
+                                defaults: 'left',
+                                list: [
+                                    { value: 'left', name: 'Left' },
+                                    { value: 'center', name: 'Center' },
+                                    { value: 'right', name: 'Right' },
+                                    { value: 'justify', name: 'Justify' },
+                                ],
+                            },
+                            { property: 'text-decoration', label: 'Decoration (underline, etc.)' },
+                            { property: 'text-transform', label: 'Case (uppercase, etc.)' },
+                        ],
+                    },
+                    {
+                        name: 'Background & Borders',
+                        open: false,
+                        properties: [
+                            { property: 'background-color', label: 'Background Color' },
+                            { property: 'background', label: 'Background (gradient, image)' },
+                            { property: 'border-radius', label: 'Corner Rounding' },
+                            { property: 'border', label: 'Border' },
+                            { property: 'box-shadow', label: 'Shadow' },
+                            { property: 'opacity', label: 'Opacity (0=invisible, 1=solid)' },
+                        ],
+                    },
+                    {
+                        name: 'Flex & Grid Layout',
+                        open: false,
+                        properties: [
+                            { property: 'display', label: 'Display Mode (flex, grid, block)' },
+                            { property: 'flex-direction', label: 'Direction (row=horizontal, column=vertical)' },
+                            { property: 'justify-content', label: 'Horizontal Alignment' },
+                            { property: 'align-items', label: 'Vertical Alignment' },
+                            { property: 'gap', label: 'Gap Between Items' },
+                            { property: 'grid-template-columns', label: 'Column Widths (e.g. 1fr 1fr)' },
+                            { property: 'position', label: 'Position (static, relative, absolute)' },
+                            { property: 'z-index', label: 'Layer Order (higher = on top)' },
+                            { property: 'overflow', label: 'Overflow (hidden, scroll, visible)' },
+                        ],
+                    },
                 ],
             },
             traitManager: {
@@ -595,12 +781,17 @@
             }
         });
 
-        // Update classes panel when selecting a component
+        // Update classes panel + show quick action bar when selecting a component
         editor.on('component:selected', (component) => {
             const el = component.getEl();
             if (el) {
                 document.getElementById('classesInput').value = el.className || '';
             }
+            document.getElementById('quickBar').classList.add('show');
+        });
+
+        editor.on('component:deselected', () => {
+            document.getElementById('quickBar').classList.remove('show');
         });
 
         // Keyboard shortcuts
@@ -617,9 +808,93 @@
     function registerCustomBlocks() {
         const bm = editor.BlockManager;
 
+        // ── Layout Blocks ──
+
+        bm.add('col-2', {
+            label: '2 Columns',
+            category: 'Layout',
+            attributes: { title: 'Two equal columns side by side (50/50)' },
+            content: `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;padding:1.5rem;">
+                <div style="min-height:80px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:1rem;">
+                    <p style="color:#525E73;font-size:0.8rem;">Column 1 — drop content here</p>
+                </div>
+                <div style="min-height:80px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:1rem;">
+                    <p style="color:#525E73;font-size:0.8rem;">Column 2 — drop content here</p>
+                </div>
+            </div>`,
+        });
+
+        bm.add('col-3', {
+            label: '3 Columns',
+            category: 'Layout',
+            attributes: { title: 'Three equal columns (33/33/33)' },
+            content: `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;padding:1.5rem;">
+                <div style="min-height:80px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:1rem;">
+                    <p style="color:#525E73;font-size:0.8rem;">Column 1</p>
+                </div>
+                <div style="min-height:80px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:1rem;">
+                    <p style="color:#525E73;font-size:0.8rem;">Column 2</p>
+                </div>
+                <div style="min-height:80px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:1rem;">
+                    <p style="color:#525E73;font-size:0.8rem;">Column 3</p>
+                </div>
+            </div>`,
+        });
+
+        bm.add('col-4', {
+            label: '4 Columns',
+            category: 'Layout',
+            attributes: { title: 'Four equal columns (25/25/25/25)' },
+            content: `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;padding:1.5rem;">
+                <div style="min-height:60px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:0.75rem;">
+                    <p style="color:#525E73;font-size:0.75rem;">Col 1</p>
+                </div>
+                <div style="min-height:60px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:0.75rem;">
+                    <p style="color:#525E73;font-size:0.75rem;">Col 2</p>
+                </div>
+                <div style="min-height:60px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:0.75rem;">
+                    <p style="color:#525E73;font-size:0.75rem;">Col 3</p>
+                </div>
+                <div style="min-height:60px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:0.75rem;">
+                    <p style="color:#525E73;font-size:0.75rem;">Col 4</p>
+                </div>
+            </div>`,
+        });
+
+        bm.add('col-sidebar-l', {
+            label: 'Sidebar Left',
+            category: 'Layout',
+            attributes: { title: 'Narrow sidebar on the left, wide content right (30/70)' },
+            content: `<div style="display:grid;grid-template-columns:1fr 2.3fr;gap:1.5rem;padding:1.5rem;">
+                <div style="min-height:100px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:1rem;">
+                    <p style="color:#525E73;font-size:0.8rem;">Sidebar</p>
+                </div>
+                <div style="min-height:100px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:1rem;">
+                    <p style="color:#525E73;font-size:0.8rem;">Main content area</p>
+                </div>
+            </div>`,
+        });
+
+        bm.add('col-sidebar-r', {
+            label: 'Sidebar Right',
+            category: 'Layout',
+            attributes: { title: 'Wide content left, narrow sidebar right (70/30)' },
+            content: `<div style="display:grid;grid-template-columns:2.3fr 1fr;gap:1.5rem;padding:1.5rem;">
+                <div style="min-height:100px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:1rem;">
+                    <p style="color:#525E73;font-size:0.8rem;">Main content area</p>
+                </div>
+                <div style="min-height:100px;background:rgba(42,46,61,0.2);border:1px dashed #2A2E3D;border-radius:0.5rem;padding:1rem;">
+                    <p style="color:#525E73;font-size:0.8rem;">Sidebar</p>
+                </div>
+            </div>`,
+        });
+
+        // ── Section Blocks ──
+
         bm.add('section-hero', {
             label: 'Hero Section',
             category: 'Sections',
+            attributes: { title: 'Full-width hero with headline, subtext, and CTA button' },
             content: `<section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden py-20" style="background: linear-gradient(135deg, #08090D 0%, #11131A 50%, #0D1117 100%);">
                 <div class="relative z-10 max-w-4xl mx-auto px-6 text-center">
                     <h1 style="font-family:'Chakra Petch',system-ui;font-size:3rem;font-weight:700;margin-bottom:1.5rem;">Your Headline Here</h1>
@@ -632,6 +907,7 @@
         bm.add('section-two-col', {
             label: 'Two Columns',
             category: 'Sections',
+            attributes: { title: 'Text on the left, content card on the right' },
             content: `<section style="padding:5rem 0;">
                 <div style="max-width:72rem;margin:0 auto;padding:0 1.5rem;">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;">
@@ -650,6 +926,7 @@
         bm.add('section-three-cards', {
             label: 'Three Cards',
             category: 'Sections',
+            attributes: { title: 'Three feature cards in a row with title and description' },
             content: `<section style="padding:5rem 0;">
                 <div style="max-width:72rem;margin:0 auto;padding:0 1.5rem;">
                     <div style="text-align:center;margin-bottom:3rem;">
@@ -677,6 +954,7 @@
         bm.add('section-cta', {
             label: 'CTA Section',
             category: 'Sections',
+            attributes: { title: 'Centered call-to-action with headline and buttons' },
             content: `<section style="padding:5rem 0;">
                 <div style="max-width:48rem;margin:0 auto;padding:0 1.5rem;text-align:center;">
                     <h2 style="font-family:'Chakra Petch',system-ui;font-size:1.875rem;font-weight:700;margin-bottom:1rem;">Ready to Get Started?</h2>
@@ -689,6 +967,7 @@
         bm.add('stats-bar', {
             label: 'Stats Bar',
             category: 'Sections',
+            attributes: { title: 'Horizontal bar with 4 key metrics/numbers' },
             content: `<section style="padding:2rem 0;border-top:1px solid #2A2E3D;border-bottom:1px solid #2A2E3D;background:rgba(17,19,26,0.6);">
                 <div style="max-width:72rem;margin:0 auto;padding:0 1.5rem;display:grid;grid-template-columns:repeat(4,1fr);gap:1.5rem;text-align:center;">
                     <div><div style="font-size:1.875rem;font-weight:700;color:#06D6A0;margin-bottom:0.25rem;">100+</div><div style="font-size:0.875rem;color:#525E73;">Metric One</div></div>
@@ -702,6 +981,7 @@
         bm.add('data-table', {
             label: 'Data Table',
             category: 'Data Modules',
+            attributes: { title: 'Table populated by Supabase — set table name in Settings tab' },
             content: `<div data-module="table" data-source="supabase" data-table="your_table" style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;overflow:hidden;">
                 <div style="padding:0.75rem 1.25rem;border-bottom:1px solid #2A2E3D;display:flex;justify-content:space-between;align-items:center;">
                     <span style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.875rem;">Table Title</span>
@@ -724,6 +1004,7 @@
         bm.add('stats-widget', {
             label: 'Stats Widget',
             category: 'Data Modules',
+            attributes: { title: 'Single big number metric — updated via webhook' },
             content: `<div data-module="stats" data-source="webhook" style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:1.25rem;">
                 <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#525E73;font-family:'Chakra Petch',system-ui;margin-bottom:0.5rem;">Metric Name</div>
                 <div style="font-size:2.5rem;font-weight:700;color:#06D6A0;font-family:'Chakra Petch',system-ui;">0</div>
@@ -734,6 +1015,7 @@
         bm.add('lead-form', {
             label: 'Lead Form',
             category: 'Data Modules',
+            attributes: { title: 'Contact/lead capture form — sends to webhook endpoint' },
             content: `<div data-module="form" data-endpoint="" style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:2rem;">
                 <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.25rem;font-weight:700;margin-bottom:0.5rem;">Get in Touch</h3>
                 <p style="font-size:0.875rem;color:#8A95A9;margin-bottom:1.5rem;">Fill out the form below.</p>
@@ -749,6 +1031,7 @@
         bm.add('text-block', {
             label: 'Text Block',
             category: 'Content',
+            attributes: { title: 'Heading + paragraph — double-click text to edit it' },
             content: `<div style="max-width:48rem;margin:0 auto;padding:2rem 1.5rem;">
                 <h2 style="font-family:'Chakra Petch',system-ui;font-size:1.5rem;font-weight:700;margin-bottom:1rem;">Heading</h2>
                 <p style="color:#8A95A9;line-height:1.7;">Your paragraph text goes here. Click to edit directly.</p>
@@ -758,6 +1041,7 @@
         bm.add('image-block', {
             label: 'Image',
             category: 'Content',
+            attributes: { title: 'Image placeholder — double-click to change the source' },
             content: `<div style="max-width:56rem;margin:0 auto;padding:2rem 1.5rem;">
                 <img src="https://placehold.co/800x400/11131A/525E73?text=Your+Image" style="width:100%;border-radius:0.75rem;" alt="Placeholder">
             </div>`,
@@ -766,6 +1050,7 @@
         bm.add('testimonial', {
             label: 'Testimonial',
             category: 'Content',
+            attributes: { title: 'Customer quote with name and title' },
             content: `<div style="max-width:40rem;margin:0 auto;padding:2rem 1.5rem;text-align:center;">
                 <div style="font-size:2.5rem;color:#2A2E3D;margin-bottom:1rem;">&ldquo;</div>
                 <p style="font-size:1.125rem;font-style:italic;color:#8A95A9;line-height:1.7;margin-bottom:1.5rem;">A testimonial quote from a satisfied customer.</p>
@@ -777,22 +1062,59 @@
         bm.add('spacer', {
             label: 'Spacer',
             category: 'Utility',
+            attributes: { title: 'Empty vertical space — resize height in Styles tab' },
             content: '<div style="height:60px;"></div>',
         });
 
         bm.add('divider', {
             label: 'Divider',
             category: 'Utility',
+            attributes: { title: 'Horizontal line to separate content sections' },
             content: '<hr style="border:none;border-top:1px solid #2A2E3D;margin:2rem auto;max-width:80%;">',
         });
 
         bm.add('ad-slot', {
             label: 'Ad Slot',
             category: 'Utility',
+            attributes: { title: 'Placeholder for ad placement — 728x90 banner size' },
             content: `<div data-module="ad" style="max-width:728px;height:90px;margin:2rem auto;background:rgba(42,46,61,0.3);border:1px dashed #2A2E3D;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;">
                 <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#525E73;text-transform:uppercase;letter-spacing:0.06em;">Ad Slot (728x90)</span>
             </div>`,
         });
+    }
+
+    /* ── Quick Action Bar Functions ── */
+
+    function qbStyle(prop, value) {
+        const sel = editor.getSelected();
+        if (!sel) return;
+        sel.addStyle({ [prop]: value });
+    }
+
+    function qbFontSize(delta) {
+        const sel = editor.getSelected();
+        if (!sel) return;
+        const current = sel.getStyle()['font-size'] || '16px';
+        const px = parseFloat(current) || 16;
+        sel.addStyle({ 'font-size': Math.max(8, px + delta) + 'px' });
+    }
+
+    function qbDuplicate() {
+        const sel = editor.getSelected();
+        if (!sel) return;
+        const parent = sel.parent();
+        if (parent) {
+            const idx = parent.components().indexOf(sel);
+            const clone = sel.clone();
+            parent.components().add(clone, { at: idx + 1 });
+            editor.select(clone);
+        }
+    }
+
+    function qbDelete() {
+        const sel = editor.getSelected();
+        if (!sel) return;
+        sel.remove();
     }
 
     /* ── API ── */
