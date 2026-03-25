@@ -309,6 +309,42 @@
         #stylesPanel .gjs-sm-property .gjs-sm-btn { color: var(--ed-txt-3) !important; }
         #stylesPanel .gjs-sm-property .gjs-sm-btn.active { color: var(--ed-accent) !important; }
 
+        /* Color picker */
+        #stylesPanel .gjs-field-color .gjs-field-colorp { border-color: var(--ed-border) !important; }
+        #stylesPanel .gjs-field-color .gjs-checker-bg { border-radius: 3px !important; }
+
+        /* Number input with units */
+        #stylesPanel .gjs-field-integer,
+        #stylesPanel .gjs-field-number { display: flex !important; align-items: center !important; }
+        #stylesPanel .gjs-input-unit { background: var(--ed-surface-hi) !important; color: var(--ed-txt-3) !important; border-left: 1px solid var(--ed-border) !important; }
+
+        /* Select dropdowns */
+        #stylesPanel .gjs-field select {
+            background: var(--ed-surface-el) !important;
+            color: var(--ed-txt) !important;
+            border-color: var(--ed-border) !important;
+            padding: 4px 6px !important;
+            border-radius: 4px !important;
+        }
+        #stylesPanel .gjs-field select option { background: var(--ed-surface-el) !important; }
+
+        /* Radio buttons */
+        #stylesPanel .gjs-radio-item { color: var(--ed-txt-3) !important; border-color: var(--ed-border) !important; background: var(--ed-surface-el) !important; }
+        #stylesPanel .gjs-radio-item:hover { color: var(--ed-txt-2) !important; background: var(--ed-surface-hi) !important; }
+        #stylesPanel .gjs-radio-item.active,
+        #stylesPanel .gjs-radio-item input:checked + label { background: var(--ed-accent-dim) !important; color: var(--ed-accent) !important; border-color: rgba(6,214,160,0.3) !important; }
+
+        /* Slider */
+        #stylesPanel .gjs-field-range input[type="range"] { accent-color: var(--ed-accent) !important; }
+
+        /* Composite sub-properties */
+        #stylesPanel .gjs-sm-composite .gjs-sm-property { padding: 3px 0 !important; }
+        #stylesPanel .gjs-sm-composite .gjs-sm-label { font-size: 0.6rem !important; }
+
+        /* Stack items (box-shadow) */
+        #stylesPanel .gjs-sm-stack .gjs-sm-stack-add { color: var(--ed-accent) !important; }
+        #stylesPanel .gjs-sm-stack .gjs-sm-stack-item { background: var(--ed-surface-el) !important; border-color: var(--ed-border) !important; }
+
         /* Traits */
         #traitsPanel .gjs-trt-traits { background: transparent !important; padding: 8px; }
         #traitsPanel .gjs-trt-trait { border-bottom-color: var(--ed-border) !important; padding: 6px 0 !important; }
@@ -346,25 +382,25 @@
         }
         #codeModal.show { display: flex; }
 
-        /* ── Block Tooltips ── */
-        #blocksPanel .gjs-block { position: relative !important; }
-        #blocksPanel .gjs-block[title]:hover::after {
-            content: attr(title);
-            position: absolute;
-            left: 105%; top: 50%; transform: translateY(-50%);
-            z-index: 300;
+        /* ── Floating Tooltip ── */
+        #blockTooltip {
+            position: fixed;
+            z-index: 9000;
             background: var(--ed-surface-hi);
             border: 1px solid var(--ed-border);
             color: var(--ed-txt-2);
             font-family: 'IBM Plex Sans', system-ui;
-            font-size: 0.68rem; font-weight: 400;
+            font-size: 0.72rem; font-weight: 400;
             text-transform: none; letter-spacing: 0;
-            padding: 6px 10px;
+            padding: 6px 12px;
             border-radius: 5px;
             white-space: nowrap;
             pointer-events: none;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 0.15s;
         }
+        #blockTooltip.show { opacity: 1; }
 
         /* ── Panel Help Headers ── */
         .panel-help {
@@ -528,6 +564,9 @@
         </div>
     </div>
 
+    <!-- Floating Tooltip (positioned by JS, not clipped by sidebar overflow) -->
+    <div id="blockTooltip"></div>
+
     <!-- Quick Action Bar (appears when an element is selected) -->
     <div id="quickBar">
         <span class="qb-label">Align</span>
@@ -671,28 +710,70 @@
                         name: 'Size & Spacing',
                         open: false,
                         properties: [
-                            { property: 'width', label: 'Width' },
-                            { property: 'max-width', label: 'Max Width' },
-                            { property: 'height', label: 'Height' },
-                            { property: 'min-height', label: 'Min Height' },
-                            { property: 'padding', label: 'Inner Spacing (Padding)' },
-                            { property: 'margin', label: 'Outer Spacing (Margin)' },
+                            { property: 'width', type: 'number', label: 'Width', units: ['px','%','rem','vw','auto'], min: 0 },
+                            { property: 'max-width', type: 'number', label: 'Max Width', units: ['px','%','rem','vw','none'], min: 0 },
+                            { property: 'height', type: 'number', label: 'Height', units: ['px','%','rem','vh','auto'], min: 0 },
+                            { property: 'min-height', type: 'number', label: 'Min Height', units: ['px','%','rem','vh'], min: 0 },
+                            {
+                                property: 'padding',
+                                type: 'composite',
+                                label: 'Inner Spacing (Padding)',
+                                properties: [
+                                    { property: 'padding-top', type: 'number', units: ['px','rem','em'], label: 'Top', min: 0 },
+                                    { property: 'padding-right', type: 'number', units: ['px','rem','em'], label: 'Right', min: 0 },
+                                    { property: 'padding-bottom', type: 'number', units: ['px','rem','em'], label: 'Bottom', min: 0 },
+                                    { property: 'padding-left', type: 'number', units: ['px','rem','em'], label: 'Left', min: 0 },
+                                ],
+                            },
+                            {
+                                property: 'margin',
+                                type: 'composite',
+                                label: 'Outer Spacing (Margin)',
+                                properties: [
+                                    { property: 'margin-top', type: 'number', units: ['px','rem','em','auto'], label: 'Top' },
+                                    { property: 'margin-right', type: 'number', units: ['px','rem','em','auto'], label: 'Right' },
+                                    { property: 'margin-bottom', type: 'number', units: ['px','rem','em','auto'], label: 'Bottom' },
+                                    { property: 'margin-left', type: 'number', units: ['px','rem','em','auto'], label: 'Left' },
+                                ],
+                            },
                         ],
                     },
                     {
                         name: 'Text & Fonts',
                         open: false,
                         properties: [
-                            { property: 'font-family', label: 'Font' },
-                            { property: 'font-size', label: 'Text Size' },
-                            { property: 'font-weight', label: 'Weight (100=thin, 700=bold)' },
-                            { property: 'line-height', label: 'Line Spacing' },
-                            { property: 'letter-spacing', label: 'Letter Spacing' },
-                            { property: 'color', label: 'Text Color' },
+                            {
+                                property: 'font-family',
+                                type: 'select',
+                                label: 'Font',
+                                options: [
+                                    { id: "'Chakra Petch', system-ui, sans-serif", label: 'Chakra Petch (Headings)' },
+                                    { id: "'IBM Plex Sans', system-ui, sans-serif", label: 'IBM Plex Sans (Body)' },
+                                    { id: "'JetBrains Mono', monospace", label: 'JetBrains Mono (Code)' },
+                                    { id: 'Georgia, serif', label: 'Georgia (Serif)' },
+                                    { id: 'system-ui, sans-serif', label: 'System Default' },
+                                ],
+                            },
+                            { property: 'font-size', type: 'number', label: 'Text Size', units: ['px','rem','em'], min: 0, defaults: '16' },
+                            {
+                                property: 'font-weight',
+                                type: 'select',
+                                label: 'Weight',
+                                options: [
+                                    { id: '300', label: 'Light' },
+                                    { id: '400', label: 'Normal' },
+                                    { id: '500', label: 'Medium' },
+                                    { id: '600', label: 'Semi-Bold' },
+                                    { id: '700', label: 'Bold' },
+                                ],
+                            },
+                            { property: 'line-height', type: 'number', label: 'Line Spacing', units: ['px','','em'], min: 0, step: 0.1 },
+                            { property: 'letter-spacing', type: 'number', label: 'Letter Spacing', units: ['px','em'], step: 0.5 },
+                            { property: 'color', type: 'color', label: 'Text Color' },
                             {
                                 property: 'text-align',
-                                label: 'Text Alignment',
                                 type: 'radio',
+                                label: 'Text Alignment',
                                 defaults: 'left',
                                 list: [
                                     { value: 'left', name: 'Left' },
@@ -701,35 +782,133 @@
                                     { value: 'justify', name: 'Justify' },
                                 ],
                             },
-                            { property: 'text-decoration', label: 'Decoration (underline, etc.)' },
-                            { property: 'text-transform', label: 'Case (uppercase, etc.)' },
+                            {
+                                property: 'text-decoration',
+                                type: 'select',
+                                label: 'Decoration',
+                                options: [
+                                    { id: 'none', label: 'None' },
+                                    { id: 'underline', label: 'Underline' },
+                                    { id: 'line-through', label: 'Strikethrough' },
+                                    { id: 'overline', label: 'Overline' },
+                                ],
+                            },
+                            {
+                                property: 'text-transform',
+                                type: 'select',
+                                label: 'Case',
+                                options: [
+                                    { id: 'none', label: 'Normal' },
+                                    { id: 'uppercase', label: 'UPPERCASE' },
+                                    { id: 'lowercase', label: 'lowercase' },
+                                    { id: 'capitalize', label: 'Capitalize Each Word' },
+                                ],
+                            },
                         ],
                     },
                     {
                         name: 'Background & Borders',
                         open: false,
                         properties: [
-                            { property: 'background-color', label: 'Background Color' },
-                            { property: 'background', label: 'Background (gradient, image)' },
-                            { property: 'border-radius', label: 'Corner Rounding' },
-                            { property: 'border', label: 'Border' },
-                            { property: 'box-shadow', label: 'Shadow' },
-                            { property: 'opacity', label: 'Opacity (0=invisible, 1=solid)' },
+                            { property: 'background-color', type: 'color', label: 'Background Color' },
+                            { property: 'background-image', label: 'Background Image/Gradient' },
+                            { property: 'border-radius', type: 'number', label: 'Corner Rounding', units: ['px','rem','%'], min: 0 },
+                            {
+                                property: 'border',
+                                type: 'composite',
+                                label: 'Border',
+                                properties: [
+                                    { property: 'border-width', type: 'number', units: ['px'], label: 'Width', min: 0 },
+                                    {
+                                        property: 'border-style',
+                                        type: 'select',
+                                        label: 'Style',
+                                        options: [
+                                            { id: 'none', label: 'None' },
+                                            { id: 'solid', label: 'Solid' },
+                                            { id: 'dashed', label: 'Dashed' },
+                                            { id: 'dotted', label: 'Dotted' },
+                                        ],
+                                    },
+                                    { property: 'border-color', type: 'color', label: 'Color' },
+                                ],
+                            },
+                            { property: 'box-shadow', type: 'stack', label: 'Shadow' },
+                            {
+                                property: 'opacity',
+                                type: 'slider',
+                                label: 'Opacity',
+                                defaults: 1,
+                                min: 0,
+                                max: 1,
+                                step: 0.05,
+                            },
                         ],
                     },
                     {
                         name: 'Flex & Grid Layout',
                         open: false,
                         properties: [
-                            { property: 'display', label: 'Display Mode (flex, grid, block)' },
-                            { property: 'flex-direction', label: 'Direction (row=horizontal, column=vertical)' },
-                            { property: 'justify-content', label: 'Horizontal Alignment' },
-                            { property: 'align-items', label: 'Vertical Alignment' },
-                            { property: 'gap', label: 'Gap Between Items' },
-                            { property: 'grid-template-columns', label: 'Column Widths (e.g. 1fr 1fr)' },
-                            { property: 'position', label: 'Position (static, relative, absolute)' },
-                            { property: 'z-index', label: 'Layer Order (higher = on top)' },
-                            { property: 'overflow', label: 'Overflow (hidden, scroll, visible)' },
+                            {
+                                property: 'display',
+                                type: 'select',
+                                label: 'Display Mode',
+                                options: [
+                                    { id: 'block', label: 'Block (stacks vertically)' },
+                                    { id: 'flex', label: 'Flex (flexible row/column)' },
+                                    { id: 'grid', label: 'Grid (columns & rows)' },
+                                    { id: 'inline-block', label: 'Inline Block' },
+                                    { id: 'inline', label: 'Inline' },
+                                    { id: 'none', label: 'Hidden' },
+                                ],
+                            },
+                            {
+                                property: 'flex-direction',
+                                type: 'radio',
+                                label: 'Direction',
+                                list: [
+                                    { value: 'row', name: 'Horizontal' },
+                                    { value: 'column', name: 'Vertical' },
+                                ],
+                            },
+                            {
+                                property: 'justify-content',
+                                type: 'select',
+                                label: 'Horizontal Alignment',
+                                options: [
+                                    { id: 'flex-start', label: 'Start (left)' },
+                                    { id: 'center', label: 'Center' },
+                                    { id: 'flex-end', label: 'End (right)' },
+                                    { id: 'space-between', label: 'Space Between' },
+                                    { id: 'space-around', label: 'Space Around' },
+                                    { id: 'space-evenly', label: 'Space Evenly' },
+                                ],
+                            },
+                            {
+                                property: 'align-items',
+                                type: 'select',
+                                label: 'Vertical Alignment',
+                                options: [
+                                    { id: 'flex-start', label: 'Top' },
+                                    { id: 'center', label: 'Center' },
+                                    { id: 'flex-end', label: 'Bottom' },
+                                    { id: 'stretch', label: 'Stretch (fill)' },
+                                    { id: 'baseline', label: 'Baseline' },
+                                ],
+                            },
+                            { property: 'gap', type: 'number', label: 'Gap Between Items', units: ['px','rem','em'], min: 0 },
+                            { property: 'grid-template-columns', label: 'Column Widths (e.g. 1fr 1fr 1fr)' },
+                            {
+                                property: 'overflow',
+                                type: 'select',
+                                label: 'Overflow',
+                                options: [
+                                    { id: 'visible', label: 'Visible (show all)' },
+                                    { id: 'hidden', label: 'Hidden (clip)' },
+                                    { id: 'auto', label: 'Auto (scroll if needed)' },
+                                    { id: 'scroll', label: 'Always Scroll' },
+                                ],
+                            },
                         ],
                     },
                 ],
@@ -1083,12 +1262,41 @@
         });
     }
 
+    /* ── Floating Tooltip for Blocks ── */
+
+    function initTooltips() {
+        const tip = document.getElementById('blockTooltip');
+        let hideTimer;
+        document.getElementById('blocksPanel').addEventListener('mouseenter', (e) => {
+            const block = e.target.closest('.gjs-block');
+            if (!block || !block.getAttribute('title')) return;
+            clearTimeout(hideTimer);
+            tip.textContent = block.getAttribute('title');
+            const rect = block.getBoundingClientRect();
+            tip.style.left = (rect.right + 8) + 'px';
+            tip.style.top = (rect.top + rect.height / 2) + 'px';
+            tip.style.transform = 'translateY(-50%)';
+            tip.classList.add('show');
+        }, true);
+        document.getElementById('blocksPanel').addEventListener('mouseleave', (e) => {
+            const block = e.target.closest('.gjs-block');
+            if (!block) return;
+            hideTimer = setTimeout(() => tip.classList.remove('show'), 100);
+        }, true);
+    }
+
     /* ── Quick Action Bar Functions ── */
 
     function qbStyle(prop, value) {
         const sel = editor.getSelected();
         if (!sel) return;
-        sel.addStyle({ [prop]: value });
+        // Toggle behavior: if already set to this value, remove it
+        const current = sel.getStyle()[prop];
+        if (current === value) {
+            sel.addStyle({ [prop]: '' });
+        } else {
+            sel.addStyle({ [prop]: value });
+        }
     }
 
     function qbFontSize(delta) {
@@ -1370,6 +1578,8 @@
     document.addEventListener('DOMContentLoaded', () => {
         initEditor();
         loadSites();
+        // Delay tooltip init so GrapesJS has rendered blocks
+        setTimeout(initTooltips, 1000);
     });
     </script>
 </body>
