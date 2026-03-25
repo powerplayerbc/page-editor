@@ -1324,6 +1324,434 @@
                 <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#525E73;text-transform:uppercase;letter-spacing:0.06em;">Ad Slot (728x90)</span>
             </div>`,
         });
+
+        // ══════════════════════════════════════
+        // LEAD CAPTURE
+        // ══════════════════════════════════════
+
+        bm.add('email-signup', {
+            label: 'Email Signup',
+            category: 'Lead Capture',
+            attributes: { title: 'Simple name + email capture — sends to webhook' },
+            content: `<div data-module="form" data-endpoint="" style="max-width:480px;margin:2rem auto;padding:2rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;text-align:center;">
+                <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.25rem;font-weight:700;margin-bottom:0.5rem;">Stay in the Loop</h3>
+                <p style="color:#8A95A9;font-size:0.875rem;margin-bottom:1.5rem;">Get updates delivered straight to your inbox.</p>
+                <form style="display:flex;flex-direction:column;gap:0.75rem;" onsubmit="return false;">
+                    <input type="text" placeholder="First Name" style="padding:0.7rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;width:100%;box-sizing:border-box;">
+                    <input type="email" placeholder="Email Address" style="padding:0.7rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;width:100%;box-sizing:border-box;">
+                    <button type="submit" style="padding:0.75rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.5rem;font-weight:600;cursor:pointer;font-size:0.875rem;font-family:'Chakra Petch',system-ui;text-transform:uppercase;letter-spacing:0.04em;">Subscribe</button>
+                </form>
+                <p style="color:#525E73;font-size:0.65rem;margin-top:0.75rem;">No spam. Unsubscribe anytime.</p>
+            </div>`,
+        });
+
+        bm.add('lead-magnet', {
+            label: 'Lead Magnet Box',
+            category: 'Lead Capture',
+            attributes: { title: 'Freebie offer — image + bullet points + email capture form' },
+            content: `<div data-module="form" data-endpoint="" style="max-width:720px;margin:2rem auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;padding:2rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;align-items:center;">
+                <div>
+                    <div style="background:rgba(6,214,160,0.08);border:1px solid rgba(6,214,160,0.2);border-radius:0.5rem;padding:2rem;text-align:center;min-height:180px;display:flex;align-items:center;justify-content:center;">
+                        <span style="color:#06D6A0;font-family:'Chakra Petch',system-ui;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;">Lead Magnet Image</span>
+                    </div>
+                </div>
+                <div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:#06D6A0;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;">Free Download</div>
+                    <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.25rem;font-weight:700;margin-bottom:0.75rem;">Your Free Guide Title</h3>
+                    <ul style="list-style:none;padding:0;margin:0 0 1.25rem 0;display:flex;flex-direction:column;gap:0.4rem;">
+                        <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Benefit number one</li>
+                        <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Benefit number two</li>
+                        <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Benefit number three</li>
+                    </ul>
+                    <form style="display:flex;flex-direction:column;gap:0.6rem;" onsubmit="return false;">
+                        <input type="email" placeholder="Your email address" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                        <button type="submit" style="padding:0.65rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.8rem;">Get Free Access</button>
+                    </form>
+                </div>
+            </div>`,
+        });
+
+        bm.add('content-upgrade', {
+            label: 'Content Upgrade',
+            category: 'Lead Capture',
+            attributes: { title: 'Inline blog callout — "Want the full checklist? Enter your email"' },
+            content: `<div data-module="form" data-endpoint="" style="max-width:600px;margin:2rem auto;padding:1.25rem 1.5rem;background:rgba(6,214,160,0.04);border:1px solid rgba(6,214,160,0.15);border-left:3px solid #06D6A0;border-radius:0.5rem;">
+                <div style="display:flex;align-items:flex-start;gap:0.75rem;margin-bottom:1rem;">
+                    <span style="font-size:1.25rem;">&#128230;</span>
+                    <div>
+                        <h4 style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.95rem;margin-bottom:0.25rem;">Bonus: Download the Complete Checklist</h4>
+                        <p style="color:#8A95A9;font-size:0.8rem;line-height:1.5;">Get everything from this post in a printable, step-by-step format.</p>
+                    </div>
+                </div>
+                <form style="display:flex;gap:0.5rem;flex-wrap:wrap;" onsubmit="return false;">
+                    <input type="email" placeholder="Enter your email" style="flex:1;min-width:200px;padding:0.6rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;box-sizing:border-box;">
+                    <button type="submit" style="padding:0.6rem 1.25rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.8rem;white-space:nowrap;">Send It</button>
+                </form>
+            </div>`,
+        });
+
+        bm.add('webinar-reg', {
+            label: 'Webinar Registration',
+            category: 'Lead Capture',
+            attributes: { title: 'Event/webinar signup with date, speaker, and countdown' },
+            content: `<div data-module="form" data-endpoint="" style="max-width:600px;margin:2rem auto;padding:2rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;text-align:center;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:#4CC9F0;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;">Free Live Training</div>
+                <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.5rem;font-weight:700;margin-bottom:0.5rem;">Webinar Title Goes Here</h3>
+                <p style="color:#8A95A9;font-size:0.875rem;margin-bottom:1.25rem;">Learn the exact strategy that generated $X in Y days.</p>
+                <div style="display:flex;justify-content:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+                    <div style="background:rgba(76,201,240,0.08);border:1px solid rgba(76,201,240,0.2);border-radius:0.375rem;padding:0.5rem 1rem;text-align:center;"><div style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.25rem;color:#4CC9F0;">Mar</div><div style="font-size:0.7rem;color:#8A95A9;">28th</div></div>
+                    <div style="background:rgba(76,201,240,0.08);border:1px solid rgba(76,201,240,0.2);border-radius:0.375rem;padding:0.5rem 1rem;text-align:center;"><div style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.25rem;color:#4CC9F0;">2:00</div><div style="font-size:0.7rem;color:#8A95A9;">PM EST</div></div>
+                    <div style="background:rgba(76,201,240,0.08);border:1px solid rgba(76,201,240,0.2);border-radius:0.375rem;padding:0.5rem 1rem;text-align:center;"><div style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.25rem;color:#4CC9F0;">60</div><div style="font-size:0.7rem;color:#8A95A9;">Minutes</div></div>
+                </div>
+                <form style="max-width:360px;margin:0 auto;display:flex;flex-direction:column;gap:0.6rem;" onsubmit="return false;">
+                    <input type="text" placeholder="Your Name" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <input type="email" placeholder="Your Email" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <button type="submit" style="padding:0.75rem;background:rgba(76,201,240,0.15);color:#4CC9F0;border:1px solid rgba(76,201,240,0.3);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.875rem;font-family:'Chakra Petch',system-ui;text-transform:uppercase;">Reserve My Seat</button>
+                </form>
+                <p style="color:#525E73;font-size:0.65rem;margin-top:0.75rem;">Limited spots available. A replay will be sent if you can't make it live.</p>
+            </div>`,
+        });
+
+        // ══════════════════════════════════════
+        // SALES & SOCIAL PROOF
+        // ══════════════════════════════════════
+
+        bm.add('pricing-table', {
+            label: 'Pricing Table',
+            category: 'Sales',
+            attributes: { title: '2-3 tier pricing cards with features, highlighted "popular" tier' },
+            content: `<div style="max-width:900px;margin:2rem auto;padding:0 1rem;">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;align-items:stretch;">
+                    <div style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:1.5rem;display:flex;flex-direction:column;">
+                        <div style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Starter</div>
+                        <div style="margin-bottom:1rem;"><span style="font-family:'Chakra Petch',system-ui;font-size:2rem;font-weight:700;">$29</span><span style="color:#525E73;font-size:0.8rem;">/mo</span></div>
+                        <ul style="list-style:none;padding:0;margin:0 0 1.5rem 0;flex:1;display:flex;flex-direction:column;gap:0.5rem;">
+                            <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Feature one</li>
+                            <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Feature two</li>
+                            <li style="color:#525E73;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#525E73;">&#10007;</span> Feature three</li>
+                        </ul>
+                        <button style="padding:0.65rem;background:transparent;color:#8A95A9;border:1px solid #2A2E3D;border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.8rem;width:100%;">Choose Plan</button>
+                    </div>
+                    <div style="background:rgba(17,19,26,0.8);border:2px solid rgba(6,214,160,0.4);border-radius:0.75rem;padding:1.5rem;display:flex;flex-direction:column;position:relative;">
+                        <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#06D6A0;color:#000;font-family:'Chakra Petch',system-ui;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.2rem 0.75rem;border-radius:1rem;">Most Popular</div>
+                        <div style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Professional</div>
+                        <div style="margin-bottom:1rem;"><span style="font-family:'Chakra Petch',system-ui;font-size:2rem;font-weight:700;color:#06D6A0;">$79</span><span style="color:#525E73;font-size:0.8rem;">/mo</span></div>
+                        <ul style="list-style:none;padding:0;margin:0 0 1.5rem 0;flex:1;display:flex;flex-direction:column;gap:0.5rem;">
+                            <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Everything in Starter</li>
+                            <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Feature three</li>
+                            <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Priority support</li>
+                        </ul>
+                        <button style="padding:0.65rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.8rem;width:100%;">Choose Plan</button>
+                    </div>
+                    <div style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:1.5rem;display:flex;flex-direction:column;">
+                        <div style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Enterprise</div>
+                        <div style="margin-bottom:1rem;"><span style="font-family:'Chakra Petch',system-ui;font-size:2rem;font-weight:700;">$199</span><span style="color:#525E73;font-size:0.8rem;">/mo</span></div>
+                        <ul style="list-style:none;padding:0;margin:0 0 1.5rem 0;flex:1;display:flex;flex-direction:column;gap:0.5rem;">
+                            <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Everything in Pro</li>
+                            <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Dedicated account rep</li>
+                            <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Custom integrations</li>
+                        </ul>
+                        <button style="padding:0.65rem;background:transparent;color:#8A95A9;border:1px solid #2A2E3D;border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.8rem;width:100%;">Contact Sales</button>
+                    </div>
+                </div>
+            </div>`,
+        });
+
+        bm.add('product-card', {
+            label: 'Product Card',
+            category: 'Sales',
+            attributes: { title: 'Single product — image, title, price, description, buy button' },
+            content: `<div style="max-width:320px;margin:1rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;overflow:hidden;">
+                <div style="background:rgba(42,46,61,0.3);height:200px;display:flex;align-items:center;justify-content:center;">
+                    <span style="color:#525E73;font-size:0.8rem;font-family:'JetBrains Mono',monospace;">Product Image</span>
+                </div>
+                <div style="padding:1.25rem;">
+                    <h4 style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:1rem;margin-bottom:0.25rem;">Product Name</h4>
+                    <div style="margin-bottom:0.75rem;"><span style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.25rem;color:#06D6A0;">$49</span> <span style="text-decoration:line-through;color:#525E73;font-size:0.8rem;">$79</span></div>
+                    <p style="color:#8A95A9;font-size:0.8rem;line-height:1.5;margin-bottom:1rem;">Short description of what the customer gets and why they need it.</p>
+                    <button style="width:100%;padding:0.65rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.8rem;">Add to Cart</button>
+                </div>
+            </div>`,
+        });
+
+        bm.add('feature-comparison', {
+            label: 'Feature Comparison',
+            category: 'Sales',
+            attributes: { title: 'Side-by-side comparison table — Us vs Them, or Free vs Pro' },
+            content: `<div style="max-width:600px;margin:2rem auto;padding:0 1rem;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+                    <thead><tr>
+                        <th style="text-align:left;padding:0.75rem 1rem;border-bottom:1px solid #2A2E3D;color:#8A95A9;font-family:'Chakra Petch',system-ui;font-size:0.7rem;text-transform:uppercase;">Feature</th>
+                        <th style="text-align:center;padding:0.75rem 1rem;border-bottom:1px solid #2A2E3D;color:#525E73;font-family:'Chakra Petch',system-ui;font-size:0.7rem;text-transform:uppercase;">Others</th>
+                        <th style="text-align:center;padding:0.75rem 1rem;border-bottom:1px solid #2A2E3D;color:#06D6A0;font-family:'Chakra Petch',system-ui;font-size:0.7rem;text-transform:uppercase;">Us</th>
+                    </tr></thead>
+                    <tbody>
+                        <tr><td style="padding:0.6rem 1rem;border-bottom:1px solid rgba(42,46,61,0.4);color:#E8ECF1;">Feature one</td><td style="text-align:center;padding:0.6rem;border-bottom:1px solid rgba(42,46,61,0.4);color:#FF6B6B;">&#10007;</td><td style="text-align:center;padding:0.6rem;border-bottom:1px solid rgba(42,46,61,0.4);color:#06D6A0;">&#10003;</td></tr>
+                        <tr><td style="padding:0.6rem 1rem;border-bottom:1px solid rgba(42,46,61,0.4);color:#E8ECF1;">Feature two</td><td style="text-align:center;padding:0.6rem;border-bottom:1px solid rgba(42,46,61,0.4);color:#FF6B6B;">&#10007;</td><td style="text-align:center;padding:0.6rem;border-bottom:1px solid rgba(42,46,61,0.4);color:#06D6A0;">&#10003;</td></tr>
+                        <tr><td style="padding:0.6rem 1rem;border-bottom:1px solid rgba(42,46,61,0.4);color:#E8ECF1;">Feature three</td><td style="text-align:center;padding:0.6rem;border-bottom:1px solid rgba(42,46,61,0.4);color:#06D6A0;">&#10003;</td><td style="text-align:center;padding:0.6rem;border-bottom:1px solid rgba(42,46,61,0.4);color:#06D6A0;">&#10003;</td></tr>
+                        <tr><td style="padding:0.6rem 1rem;color:#E8ECF1;">Dedicated support</td><td style="text-align:center;padding:0.6rem;color:#FF6B6B;">&#10007;</td><td style="text-align:center;padding:0.6rem;color:#06D6A0;">&#10003;</td></tr>
+                    </tbody>
+                </table>
+            </div>`,
+        });
+
+        bm.add('vsl-section', {
+            label: 'Video Sales Letter',
+            category: 'Sales',
+            attributes: { title: 'Video embed + headline + CTA — the classic VSL layout' },
+            content: `<div style="max-width:720px;margin:2rem auto;padding:0 1rem;text-align:center;">
+                <h2 style="font-family:'Chakra Petch',system-ui;font-size:1.5rem;font-weight:700;margin-bottom:1.25rem;">Watch This Short Video to Learn How...</h2>
+                <div style="position:relative;padding-bottom:56.25%;background:#11131A;border:1px solid #2A2E3D;border-radius:0.75rem;overflow:hidden;margin-bottom:1.5rem;">
+                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+                        <div style="width:60px;height:60px;border-radius:50%;background:rgba(6,214,160,0.15);border:2px solid rgba(6,214,160,0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 4l10 6-10 6V4z" fill="#06D6A0"/></svg>
+                        </div>
+                    </div>
+                </div>
+                <p style="color:#8A95A9;font-size:1rem;margin-bottom:1.5rem;line-height:1.6;">Discover the exact system that helps businesses like yours achieve results.</p>
+                <button style="padding:0.875rem 2.5rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.5rem;font-weight:600;cursor:pointer;font-size:1rem;font-family:'Chakra Petch',system-ui;text-transform:uppercase;letter-spacing:0.04em;">Get Started Now</button>
+            </div>`,
+        });
+
+        bm.add('social-proof-bar', {
+            label: 'Social Proof Bar',
+            category: 'Sales',
+            attributes: { title: '"As seen in" logos, customer count, star ratings' },
+            content: `<div style="padding:1.5rem 1rem;border-top:1px solid rgba(42,46,61,0.4);border-bottom:1px solid rgba(42,46,61,0.4);background:rgba(17,19,26,0.4);text-align:center;">
+                <p style="color:#525E73;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;font-family:'JetBrains Mono',monospace;margin-bottom:1rem;">Trusted by 500+ businesses worldwide</p>
+                <div style="display:flex;justify-content:center;align-items:center;gap:2rem;flex-wrap:wrap;opacity:0.5;">
+                    <div style="width:100px;height:30px;background:rgba(255,255,255,0.08);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#8A95A9;">Logo 1</div>
+                    <div style="width:100px;height:30px;background:rgba(255,255,255,0.08);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#8A95A9;">Logo 2</div>
+                    <div style="width:100px;height:30px;background:rgba(255,255,255,0.08);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#8A95A9;">Logo 3</div>
+                    <div style="width:100px;height:30px;background:rgba(255,255,255,0.08);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#8A95A9;">Logo 4</div>
+                    <div style="width:100px;height:30px;background:rgba(255,255,255,0.08);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#8A95A9;">Logo 5</div>
+                </div>
+            </div>`,
+        });
+
+        bm.add('faq-accordion', {
+            label: 'FAQ Accordion',
+            category: 'Sales',
+            attributes: { title: 'Click-to-expand questions and answers' },
+            content: `<div style="max-width:640px;margin:2rem auto;padding:0 1rem;">
+                <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.25rem;font-weight:700;text-align:center;margin-bottom:1.5rem;">Frequently Asked Questions</h3>
+                <details style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;margin-bottom:0.5rem;">
+                    <summary style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">How does this work? <span style="color:#525E73;font-size:0.7rem;">+</span></summary>
+                    <div style="padding:0 1rem 0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Your answer goes here. Explain clearly and concisely to remove purchase anxiety.</div>
+                </details>
+                <details style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;margin-bottom:0.5rem;">
+                    <summary style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">What's included? <span style="color:#525E73;font-size:0.7rem;">+</span></summary>
+                    <div style="padding:0 1rem 0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Detail everything the customer receives when they purchase or sign up.</div>
+                </details>
+                <details style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;margin-bottom:0.5rem;">
+                    <summary style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">Is there a guarantee? <span style="color:#525E73;font-size:0.7rem;">+</span></summary>
+                    <div style="padding:0 1rem 0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Yes! We offer a 30-day money-back guarantee. No questions asked.</div>
+                </details>
+                <details style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;">
+                    <summary style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">How do I get support? <span style="color:#525E73;font-size:0.7rem;">+</span></summary>
+                    <div style="padding:0 1rem 0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Email us anytime or use the live chat. We typically respond within 2 hours.</div>
+                </details>
+            </div>`,
+        });
+
+        bm.add('guarantee-badge', {
+            label: 'Guarantee Badge',
+            category: 'Sales',
+            attributes: { title: 'Money-back guarantee seal with text — reduces purchase anxiety' },
+            content: `<div style="max-width:480px;margin:2rem auto;padding:1.5rem;display:flex;align-items:center;gap:1rem;background:rgba(6,214,160,0.04);border:1px solid rgba(6,214,160,0.15);border-radius:0.75rem;">
+                <div style="flex-shrink:0;width:60px;height:60px;border-radius:50%;border:2px solid rgba(6,214,160,0.4);background:rgba(6,214,160,0.08);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">&#128170;</div>
+                <div>
+                    <h4 style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;color:#06D6A0;">30-Day Money-Back Guarantee</h4>
+                    <p style="color:#8A95A9;font-size:0.78rem;line-height:1.5;">Try it risk-free. If you're not completely satisfied, we'll refund every penny. No questions asked.</p>
+                </div>
+            </div>`,
+        });
+
+        // ══════════════════════════════════════
+        // CHECKOUT
+        // ══════════════════════════════════════
+
+        bm.add('checkout-form', {
+            label: 'Checkout Form',
+            category: 'Checkout',
+            attributes: { title: 'Full checkout — contact info + address fields. Posts to webhook.' },
+            content: `<div data-module="form" data-endpoint="" data-type="checkout" style="max-width:480px;margin:1rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:1.5rem;">
+                <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.125rem;font-weight:700;margin-bottom:1.25rem;">Complete Your Order</h3>
+                <form style="display:flex;flex-direction:column;gap:0.75rem;" onsubmit="return false;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <input type="text" placeholder="First Name" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                        <input type="text" placeholder="Last Name" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    </div>
+                    <input type="email" placeholder="Email Address" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <input type="tel" placeholder="Phone Number" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <hr style="border:none;border-top:1px solid #2A2E3D;margin:0.25rem 0;">
+                    <input type="text" placeholder="Street Address" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:0.75rem;">
+                        <input type="text" placeholder="City" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                        <input type="text" placeholder="State" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                        <input type="text" placeholder="ZIP" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    </div>
+                    <button type="submit" style="padding:0.875rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.5rem;font-weight:700;cursor:pointer;font-size:0.9rem;font-family:'Chakra Petch',system-ui;text-transform:uppercase;letter-spacing:0.04em;margin-top:0.25rem;">Complete Purchase</button>
+                </form>
+            </div>`,
+        });
+
+        bm.add('order-summary', {
+            label: 'Order Summary',
+            category: 'Checkout',
+            attributes: { title: 'Line items, subtotal, total — sits beside checkout form' },
+            content: `<div style="max-width:360px;margin:1rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:1.5rem;">
+                <h4 style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.9rem;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #2A2E3D;">Order Summary</h4>
+                <div style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1rem;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.8rem;"><span style="color:#E8ECF1;">Product Name</span><span style="color:#E8ECF1;">$79.00</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:0.8rem;"><span style="color:#8A95A9;">Discount</span><span style="color:#06D6A0;">-$30.00</span></div>
+                </div>
+                <div style="border-top:1px solid #2A2E3D;padding-top:0.75rem;display:flex;justify-content:space-between;font-size:0.9rem;">
+                    <span style="font-family:'Chakra Petch',system-ui;font-weight:600;">Total</span>
+                    <span style="font-family:'Chakra Petch',system-ui;font-weight:700;color:#06D6A0;">$49.00</span>
+                </div>
+            </div>`,
+        });
+
+        bm.add('order-bump', {
+            label: 'Order Bump',
+            category: 'Checkout',
+            attributes: { title: 'Checkbox add-on — "Add X for only $Y more" inside checkout' },
+            content: `<div style="max-width:480px;margin:0.75rem auto;padding:1rem;background:rgba(255,217,61,0.04);border:1px dashed rgba(255,217,61,0.3);border-radius:0.5rem;">
+                <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;">
+                    <input type="checkbox" style="margin-top:0.25rem;accent-color:#FFD93D;width:18px;height:18px;flex-shrink:0;">
+                    <div>
+                        <div style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.85rem;color:#FFD93D;margin-bottom:0.2rem;">YES! Add the Bonus Pack for just $19</div>
+                        <p style="color:#8A95A9;font-size:0.75rem;line-height:1.5;">Get the complete template library, cheat sheets, and video walkthroughs. Normally $49 — yours for $19 when you add it now.</p>
+                    </div>
+                </label>
+            </div>`,
+        });
+
+        bm.add('trust-strip', {
+            label: 'Trust Strip',
+            category: 'Checkout',
+            attributes: { title: 'SSL badge + payment icons + guarantee — below checkout form' },
+            content: `<div style="max-width:480px;margin:1rem auto;display:flex;justify-content:center;align-items:center;gap:1.5rem;flex-wrap:wrap;padding:0.75rem;opacity:0.6;">
+                <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:#8A95A9;"><span style="color:#06D6A0;">&#128274;</span> SSL Encrypted</div>
+                <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:#8A95A9;"><span style="color:#4CC9F0;">&#128179;</span> Secure Payment</div>
+                <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:#8A95A9;"><span style="color:#FFD93D;">&#9733;</span> 30-Day Guarantee</div>
+            </div>`,
+        });
+
+        // ══════════════════════════════════════
+        // UPSELL / DOWNSELL
+        // ══════════════════════════════════════
+
+        bm.add('oto-box', {
+            label: 'One-Time Offer',
+            category: 'Upsell / Offers',
+            attributes: { title: 'Upsell box — strikethrough price + urgency + Yes/No buttons' },
+            content: `<div data-module="form" data-endpoint="" data-type="upsell" style="max-width:560px;margin:2rem auto;padding:2rem;background:rgba(17,19,26,0.8);border:2px solid rgba(255,217,61,0.3);border-radius:0.75rem;text-align:center;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:#FFD93D;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;">&#9200; One-Time Offer — This Page Only</div>
+                <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.5rem;font-weight:700;margin-bottom:0.5rem;">Upgrade Your Order</h3>
+                <p style="color:#8A95A9;font-size:0.9rem;line-height:1.6;margin-bottom:1.25rem;">Get the premium package with everything included. This special price is <strong style="color:#FFD93D;">only available right now</strong>.</p>
+                <div style="margin-bottom:1.5rem;"><span style="text-decoration:line-through;color:#525E73;font-size:1rem;">$197</span> <span style="font-family:'Chakra Petch',system-ui;font-size:2rem;font-weight:700;color:#06D6A0;margin-left:0.5rem;">$67</span></div>
+                <div style="display:flex;flex-direction:column;gap:0.5rem;max-width:320px;margin:0 auto;">
+                    <button style="padding:0.875rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.5rem;font-weight:700;cursor:pointer;font-size:0.9rem;font-family:'Chakra Petch',system-ui;text-transform:uppercase;">Yes! Upgrade My Order</button>
+                    <button style="padding:0.6rem;background:transparent;color:#525E73;border:none;cursor:pointer;font-size:0.75rem;text-decoration:underline;">No thanks, I'll pass on this deal</button>
+                </div>
+            </div>`,
+        });
+
+        bm.add('downsell-card', {
+            label: 'Downsell Card',
+            category: 'Upsell / Offers',
+            attributes: { title: 'Reduced offer — "Not ready? Get X instead for less"' },
+            content: `<div data-module="form" data-endpoint="" data-type="downsell" style="max-width:480px;margin:2rem auto;padding:1.75rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;text-align:center;">
+                <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.125rem;font-weight:700;margin-bottom:0.5rem;">Wait — Here's a Lighter Option</h3>
+                <p style="color:#8A95A9;font-size:0.85rem;line-height:1.5;margin-bottom:1.25rem;">Not ready for the full package? Get the essentials at a reduced price.</p>
+                <div style="margin-bottom:1.25rem;"><span style="font-family:'Chakra Petch',system-ui;font-size:1.75rem;font-weight:700;color:#4CC9F0;">$27</span> <span style="color:#525E73;font-size:0.8rem;">one-time</span></div>
+                <ul style="list-style:none;padding:0;margin:0 auto 1.25rem;max-width:280px;display:flex;flex-direction:column;gap:0.4rem;">
+                    <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#4CC9F0;">&#10003;</span> Core feature included</li>
+                    <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#4CC9F0;">&#10003;</span> Basic templates</li>
+                    <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#4CC9F0;">&#10003;</span> Email support</li>
+                </ul>
+                <button style="padding:0.75rem 2rem;background:rgba(76,201,240,0.15);color:#4CC9F0;border:1px solid rgba(76,201,240,0.3);border-radius:0.5rem;font-weight:600;cursor:pointer;font-size:0.85rem;">Get the Essentials</button>
+            </div>`,
+        });
+
+        bm.add('countdown-timer', {
+            label: 'Countdown Timer',
+            category: 'Upsell / Offers',
+            attributes: { title: 'Live countdown clock — creates urgency on any page' },
+            content: `<div data-module="countdown" style="max-width:500px;margin:1.5rem auto;text-align:center;padding:1.25rem;">
+                <p style="color:#FF6B6B;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;">&#9200; This offer expires in</p>
+                <div style="display:flex;justify-content:center;gap:0.75rem;">
+                    <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:0.5rem;padding:0.75rem 1rem;min-width:60px;"><div style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.75rem;color:#FF6B6B;">23</div><div style="font-size:0.6rem;color:#8A95A9;text-transform:uppercase;">Hours</div></div>
+                    <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:0.5rem;padding:0.75rem 1rem;min-width:60px;"><div style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.75rem;color:#FF6B6B;">59</div><div style="font-size:0.6rem;color:#8A95A9;text-transform:uppercase;">Minutes</div></div>
+                    <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:0.5rem;padding:0.75rem 1rem;min-width:60px;"><div style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.75rem;color:#FF6B6B;">47</div><div style="font-size:0.6rem;color:#8A95A9;text-transform:uppercase;">Seconds</div></div>
+                </div>
+            </div>`,
+        });
+
+        // ══════════════════════════════════════
+        // POWER / UTILITY (new additions)
+        // ══════════════════════════════════════
+
+        bm.add('custom-html', {
+            label: 'Custom HTML/JS',
+            category: 'Utility',
+            attributes: { title: 'Paste any raw HTML, script, embed, or tracking pixel — full access' },
+            content: `<div data-module="custom-code" style="padding:1.5rem;margin:1rem 0;background:rgba(42,46,61,0.15);border:1px dashed #2A2E3D;border-radius:0.5rem;min-height:80px;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#525E73;text-align:center;">
+                    <div style="margin-bottom:0.5rem;">&#60;/&#62; Custom HTML / JavaScript</div>
+                    <div style="font-size:0.6rem;">Double-click to edit. Paste any embed, script, or widget code.</div>
+                </div>
+            </div>`,
+        });
+
+        bm.add('sticky-banner', {
+            label: 'Sticky Banner',
+            category: 'Utility',
+            attributes: { title: 'Top-of-page bar that stays on scroll — announcements, CTAs' },
+            content: `<div style="background:rgba(6,214,160,0.1);border-bottom:1px solid rgba(6,214,160,0.2);padding:0.6rem 1rem;text-align:center;position:sticky;top:0;z-index:50;">
+                <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap;">
+                    <span style="font-size:0.8rem;color:#E8ECF1;">&#127881; Limited time: <strong style="color:#06D6A0;">50% off</strong> all plans</span>
+                    <a href="#" style="font-size:0.7rem;font-weight:600;color:#06D6A0;text-decoration:none;padding:0.25rem 0.75rem;border:1px solid rgba(6,214,160,0.3);border-radius:1rem;">Claim Now &rarr;</a>
+                </div>
+            </div>`,
+        });
+
+        bm.add('progress-bar', {
+            label: 'Progress Bar',
+            category: 'Utility',
+            attributes: { title: 'Step indicator — shows progress through a multi-page funnel' },
+            content: `<div style="max-width:500px;margin:1.5rem auto;padding:0 1rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
+                    <div style="display:flex;align-items:center;gap:0.4rem;"><div style="width:24px;height:24px;border-radius:50%;background:#06D6A0;color:#000;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;">1</div><span style="font-size:0.7rem;color:#06D6A0;font-weight:500;">Info</span></div>
+                    <div style="flex:1;height:2px;background:#2A2E3D;margin:0 0.5rem;position:relative;"><div style="position:absolute;inset:0;width:100%;background:#06D6A0;border-radius:1px;"></div></div>
+                    <div style="display:flex;align-items:center;gap:0.4rem;"><div style="width:24px;height:24px;border-radius:50%;background:#06D6A0;color:#000;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;">2</div><span style="font-size:0.7rem;color:#06D6A0;font-weight:500;">Payment</span></div>
+                    <div style="flex:1;height:2px;background:#2A2E3D;margin:0 0.5rem;"></div>
+                    <div style="display:flex;align-items:center;gap:0.4rem;"><div style="width:24px;height:24px;border-radius:50%;background:rgba(42,46,61,0.5);border:1px solid #2A2E3D;color:#525E73;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;">3</div><span style="font-size:0.7rem;color:#525E73;">Confirm</span></div>
+                </div>
+            </div>`,
+        });
+
+        bm.add('before-after', {
+            label: 'Before / After',
+            category: 'Utility',
+            attributes: { title: 'Side-by-side comparison — show results, transformations' },
+            content: `<div style="max-width:700px;margin:2rem auto;padding:0 1rem;">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;">
+                    <div style="background:rgba(255,107,107,0.04);border:1px solid rgba(255,107,107,0.15);border-radius:0.75rem;padding:1.25rem;text-align:center;">
+                        <div style="font-family:'Chakra Petch',system-ui;font-size:0.7rem;font-weight:600;color:#FF6B6B;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem;">Before</div>
+                        <div style="background:rgba(42,46,61,0.3);border-radius:0.5rem;height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;"><span style="color:#525E73;font-size:0.75rem;">Image or content</span></div>
+                        <p style="color:#8A95A9;font-size:0.8rem;line-height:1.5;">Describe the problem state or the "before" situation.</p>
+                    </div>
+                    <div style="background:rgba(6,214,160,0.04);border:1px solid rgba(6,214,160,0.15);border-radius:0.75rem;padding:1.25rem;text-align:center;">
+                        <div style="font-family:'Chakra Petch',system-ui;font-size:0.7rem;font-weight:600;color:#06D6A0;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem;">After</div>
+                        <div style="background:rgba(42,46,61,0.3);border-radius:0.5rem;height:160px;display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;"><span style="color:#525E73;font-size:0.75rem;">Image or content</span></div>
+                        <p style="color:#8A95A9;font-size:0.8rem;line-height:1.5;">Show the transformation, results, or improvement.</p>
+                    </div>
+                </div>
+            </div>`,
+        });
     }
 
     /* ── Floating Tooltip for Blocks ── */
