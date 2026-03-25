@@ -770,10 +770,10 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
 <\/script>`;
         }
 
-        // Countdown timer
+        // Countdown timer with zero-actions (redirect + webhook)
         if (body.includes('data-module="countdown"')) {
             injectedScripts += `\n<script>
-(function(){var timers=document.querySelectorAll('[data-module="countdown"]');timers.forEach(function(t){var hrs=parseFloat(t.getAttribute('data-countdown-hours'))||24;var key='cd_'+location.pathname+'_'+hrs;var stored=localStorage.getItem(key);var target;if(stored){target=parseInt(stored)}else{target=Date.now()+hrs*3600000;localStorage.setItem(key,target)}function tick(){var left=Math.max(0,target-Date.now());var s=Math.floor(left/1000);var h=Math.floor(s/3600);var m=Math.floor((s%3600)/60);s=s%60;var eh=t.querySelector('[data-cd-h]');var em=t.querySelector('[data-cd-m]');var es=t.querySelector('[data-cd-s]');if(eh)eh.textContent=String(h).padStart(2,'0');if(em)em.textContent=String(m).padStart(2,'0');if(es)es.textContent=String(s).padStart(2,'0');if(left>0)requestAnimationFrame(tick)}tick()})})();
+(function(){var timers=document.querySelectorAll('[data-module="countdown"]');timers.forEach(function(t){var hrs=parseFloat(t.getAttribute('data-countdown-hours'))||24;var redir=t.getAttribute('data-countdown-redirect')||'';var hook=t.getAttribute('data-countdown-webhook')||'';var key='cd_'+location.pathname+'_'+hrs;var stored=localStorage.getItem(key);var target;var fired=localStorage.getItem(key+'_fired');if(stored){target=parseInt(stored)}else{target=Date.now()+hrs*3600000;localStorage.setItem(key,target)}function onZero(){if(fired)return;localStorage.setItem(key+'_fired','1');if(hook){try{fetch(hook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event:'countdown_expired',page:location.href,timer_hours:hrs,expired_at:new Date().toISOString()}),keepalive:true})}catch(e){}}if(redir){setTimeout(function(){window.location.href=redir},500)}}function tick(){var left=Math.max(0,target-Date.now());var s=Math.floor(left/1000);var h=Math.floor(s/3600);var m=Math.floor((s%3600)/60);s=s%60;var eh=t.querySelector('[data-cd-h]');var em=t.querySelector('[data-cd-m]');var es=t.querySelector('[data-cd-s]');if(eh)eh.textContent=String(h).padStart(2,'0');if(em)em.textContent=String(m).padStart(2,'0');if(es)es.textContent=String(s).padStart(2,'0');if(left<=0){onZero()}else{requestAnimationFrame(tick)}}tick()})})();
 <\/script>`;
         }
 
@@ -1525,13 +1525,18 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
             </div>`,
         });
 
-        // Register Countdown as a custom component type with hours trait
+        // Register Countdown as a custom component type with hours + zero-action traits
         editor.Components.addType('countdown-block', {
             isComponent: el => el && el.getAttribute && el.getAttribute('data-module') === 'countdown',
             model: {
                 defaults: {
                     tagName: 'div',
-                    attributes: { 'data-module': 'countdown', 'data-countdown-hours': '24' },
+                    attributes: {
+                        'data-module': 'countdown',
+                        'data-countdown-hours': '24',
+                        'data-countdown-redirect': '',
+                        'data-countdown-webhook': '',
+                    },
                     traits: [
                         {
                             type: 'number',
@@ -1540,6 +1545,18 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
                             placeholder: '24',
                             min: 0.1,
                             step: 1,
+                        },
+                        {
+                            type: 'text',
+                            name: 'data-countdown-redirect',
+                            label: 'Redirect URL (at zero)',
+                            placeholder: 'https://yoursite.com/expired',
+                        },
+                        {
+                            type: 'text',
+                            name: 'data-countdown-webhook',
+                            label: 'Webhook URL (fires at zero)',
+                            placeholder: 'https://n8n.example.com/webhook/...',
                         },
                     ],
                 },
