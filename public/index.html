@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Page Builder | RDGR</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- GrapesJS -->
+    <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
+    <script src="https://unpkg.com/grapesjs"></script>
+    <script src="https://unpkg.com/grapesjs-preset-webpage"></script>
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --ed-base: #08090D;
+            --ed-surface: #11131A;
+            --ed-surface-el: #1A1D28;
+            --ed-surface-hi: #242836;
+            --ed-border: #2A2E3D;
+            --ed-accent: #06D6A0;
+            --ed-accent-dim: rgba(6,214,160,0.15);
+            --ed-txt: #E8ECF1;
+            --ed-txt-2: #8A95A9;
+            --ed-txt-3: #525E73;
+            --ed-danger: #FF6B6B;
+            --ed-warn: #FFD93D;
+            --ed-info: #4CC9F0;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--ed-base);
+            color: var(--ed-txt);
+            font-family: 'IBM Plex Sans', system-ui, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .font-heading { font-family: 'Chakra Petch', system-ui, sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* ── Layout ── */
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* ── Top Toolbar ── */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            height: 48px;
+            background: var(--ed-surface);
+            border-bottom: 1px solid var(--ed-border);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+        #toolbar .toolbar-left,
+        #toolbar .toolbar-center,
+        #toolbar .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #toolbar .toolbar-center { flex: 1; justify-content: center; }
+
+        .tb-btn {
+            font-family: 'Chakra Petch', system-ui;
+            font-weight: 600;
+            font-size: 0.7rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: 1px solid var(--ed-border);
+            background: transparent;
+            color: var(--ed-txt-2);
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+            white-space: nowrap;
+        }
+        .tb-btn:hover { background: rgba(255,255,255,0.04); color: var(--ed-txt); }
+        .tb-btn.active { background: var(--ed-accent-dim); color: var(--ed-accent); border-color: rgba(6,214,160,0.3); }
+        .tb-btn-primary {
+            background: var(--ed-accent-dim);
+            color: var(--ed-accent);
+            border-color: rgba(6,214,160,0.3);
+        }
+        .tb-btn-primary:hover { background: rgba(6,214,160,0.25); }
+        .tb-btn-warn {
+            background: rgba(255,107,107,0.1);
+            color: var(--ed-danger);
+            border-color: rgba(255,107,107,0.25);
+        }
+
+        .tb-select {
+            font-family: 'IBM Plex Sans', system-ui;
+            font-size: 0.75rem;
+            padding: 5px 8px;
+            border-radius: 5px;
+            border: 1px solid var(--ed-border);
+            background: var(--ed-surface-el);
+            color: var(--ed-txt);
+            cursor: pointer;
+            outline: none;
+            max-width: 180px;
+        }
+        .tb-select option { background: var(--ed-surface-el); color: var(--ed-txt); }
+
+        .tb-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--ed-border);
+            margin: 0 4px;
+        }
+
+        .tb-label {
+            font-size: 0.65rem;
+            color: var(--ed-txt-3);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── Production warning banner ── */
+        #prodWarning {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: rgba(255,107,107,0.1);
+            border-bottom: 1px solid rgba(255,107,107,0.2);
+            font-size: 0.75rem;
+            color: var(--ed-danger);
+            flex-shrink: 0;
+        }
+        #prodWarning.show { display: flex; }
+
+        /* ── Editor Container ── */
+        #editorContainer {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.25s, transform 0.25s;
+            pointer-events: none;
+        }
+        #toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        #toast.success { background: rgba(6,214,160,0.2); color: #06D6A0; border: 1px solid rgba(6,214,160,0.3); }
+        #toast.error { background: rgba(255,107,107,0.2); color: #FF6B6B; border: 1px solid rgba(255,107,107,0.3); }
+        #toast.info { background: rgba(76,201,240,0.2); color: #4CC9F0; border: 1px solid rgba(76,201,240,0.3); }
+
+        /* ── Unsaved dot ── */
+        .unsaved-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--ed-warn);
+            display: none;
+        }
+        .unsaved-dot.show { display: block; }
+
+        /* ══════════════════════════════════════
+           GrapesJS Theme Overrides (Dark)
+           ══════════════════════════════════════ */
+
+        .gjs-one-bg { background-color: var(--ed-surface) !important; }
+        .gjs-two-color { color: var(--ed-txt-2) !important; }
+        .gjs-three-bg { background-color: var(--ed-surface-el) !important; }
+        .gjs-four-color, .gjs-four-color-h:hover { color: var(--ed-accent) !important; }
+
+        /* Panels */
+        .gjs-pn-panels { background: var(--ed-surface) !important; }
+        .gjs-pn-panel { background: var(--ed-surface) !important; }
+        .gjs-pn-views-container,
+        .gjs-pn-views { background: var(--ed-surface) !important; }
+
+        /* Canvas frame */
+        .gjs-cv-canvas { background: var(--ed-base) !important; }
+        .gjs-frame-wrapper { background: var(--ed-base) !important; }
+
+        /* Blocks */
+        .gjs-blocks-cs { background: var(--ed-surface) !important; }
+        .gjs-block {
+            background: var(--ed-surface-el) !important;
+            border: 1px solid var(--ed-border) !important;
+            color: var(--ed-txt-2) !important;
+            border-radius: 6px !important;
+            min-height: 60px !important;
+            transition: border-color 0.15s !important;
+        }
+        .gjs-block:hover {
+            border-color: var(--ed-accent) !important;
+            color: var(--ed-txt) !important;
+        }
+        .gjs-block__media { color: var(--ed-txt-3) !important; }
+
+        /* Layers */
+        .gjs-layers { background: var(--ed-surface) !important; }
+        .gjs-layer { background: var(--ed-surface) !important; }
+        .gjs-layer-name { color: var(--ed-txt-2) !important; }
+
+        /* Traits */
+        .gjs-trt-traits { background: var(--ed-surface) !important; }
+        .gjs-trt-trait { border-bottom-color: var(--ed-border) !important; }
+        .gjs-trt-trait .gjs-label { color: var(--ed-txt-2) !important; }
+        .gjs-field { background: var(--ed-surface-el) !important; border-color: var(--ed-border) !important; color: var(--ed-txt) !important; }
+        .gjs-field input,
+        .gjs-field select,
+        .gjs-field textarea { color: var(--ed-txt) !important; }
+
+        /* Style Manager */
+        .gjs-sm-sector { background: var(--ed-surface) !important; }
+        .gjs-sm-sector .gjs-sm-sector-title { color: var(--ed-txt-2) !important; border-bottom-color: var(--ed-border) !important; }
+        .gjs-sm-property { color: var(--ed-txt-2) !important; }
+        .gjs-sm-label { color: var(--ed-txt-3) !important; }
+
+        /* Selection highlight */
+        .gjs-selected { outline: 2px solid var(--ed-accent) !important; outline-offset: -2px; }
+        .gjs-highlighter { outline-color: var(--ed-accent) !important; }
+
+        /* Toolbar on components */
+        .gjs-toolbar { background: var(--ed-surface-el) !important; border: 1px solid var(--ed-border) !important; border-radius: 4px !important; }
+        .gjs-toolbar-item { color: var(--ed-txt-2) !important; }
+        .gjs-toolbar-item:hover { color: var(--ed-accent) !important; }
+
+        /* Resizer */
+        .gjs-resizer-h { border-color: var(--ed-accent) !important; }
+
+        /* RTE toolbar */
+        .gjs-rte-toolbar { background: var(--ed-surface-el) !important; border: 1px solid var(--ed-border) !important; border-radius: 6px !important; }
+        .gjs-rte-actionbar .gjs-rte-action { color: var(--ed-txt-2) !important; }
+
+        /* Hide default top panel (we use our own toolbar) */
+        .gjs-pn-commands,
+        .gjs-pn-options,
+        .gjs-pn-devices-c { display: none !important; }
+
+        /* Scrollbar inside GJS panels */
+        .gjs-pn-views-container::-webkit-scrollbar,
+        .gjs-blocks-cs::-webkit-scrollbar { width: 5px; }
+        .gjs-pn-views-container::-webkit-scrollbar-thumb,
+        .gjs-blocks-cs::-webkit-scrollbar-thumb { background: var(--ed-border); border-radius: 3px; }
+
+        /* Category titles in block manager */
+        .gjs-block-category .gjs-title {
+            background: var(--ed-surface-hi) !important;
+            color: var(--ed-txt-2) !important;
+            border-bottom: 1px solid var(--ed-border) !important;
+            font-family: 'Chakra Petch', system-ui !important;
+            font-size: 0.7rem !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.06em !important;
+        }
+
+        /* Tailwind classes panel */
+        #classesPanel {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 200;
+            background: var(--ed-surface-el);
+            border: 1px solid var(--ed-border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        #classesPanel.show { display: flex; }
+        #classesPanel label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--ed-txt-3);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        #classesInput {
+            background: var(--ed-surface);
+            border: 1px solid var(--ed-border);
+            border-radius: 4px;
+            padding: 5px 8px;
+            color: var(--ed-txt);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            width: 400px;
+            outline: none;
+        }
+        #classesInput:focus { border-color: var(--ed-accent); }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- ── Toolbar ── -->
+        <div id="toolbar">
+            <div class="toolbar-left">
+                <a href="/rdgr" style="text-decoration:none; display:flex; align-items:center; gap:6px;">
+                    <div style="width:7px;height:7px;border-radius:50%;background:var(--ed-accent);opacity:0.7;"></div>
+                    <span class="font-heading" style="font-weight:700;font-size:0.8rem;color:var(--ed-txt);letter-spacing:0.04em;">RDGR</span>
+                </a>
+                <div class="tb-divider"></div>
+                <span class="tb-label">Site</span>
+                <select id="siteSelect" class="tb-select" onchange="loadPages()">
+                    <option value="">Loading...</option>
+                </select>
+                <span class="tb-label">Page</span>
+                <select id="pageSelect" class="tb-select" onchange="loadPage()">
+                    <option value="">Select page...</option>
+                </select>
+                <div class="unsaved-dot" id="unsavedDot" title="Unsaved changes"></div>
+            </div>
+
+            <div class="toolbar-center">
+                <button class="tb-btn active" id="btnDesktop" onclick="setDevice('Desktop')" title="Desktop view">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="8" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M4 12h6M7 10v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                </button>
+                <button class="tb-btn" id="btnTablet" onclick="setDevice('Tablet')" title="Tablet view">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="11" r="0.5" fill="currentColor"/></svg>
+                </button>
+                <button class="tb-btn" id="btnMobile" onclick="setDevice('Mobile')" title="Mobile view">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="3" y="1" width="8" height="12" rx="1.5" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="11" r="0.5" fill="currentColor"/></svg>
+                </button>
+                <div class="tb-divider"></div>
+                <button class="tb-btn" onclick="editor.runCommand('core:undo')" title="Undo (Ctrl+Z)">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h7a3 3 0 010 6H8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M5 4L2 7l3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="tb-btn" onclick="editor.runCommand('core:redo')" title="Redo (Ctrl+Shift+Z)">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M11 7H4a3 3 0 000 6h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M9 4l3 3-3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="tb-divider"></div>
+                <button class="tb-btn" id="btnPreview" onclick="togglePreview()" title="Toggle preview mode">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.2"/></svg>
+                    Preview
+                </button>
+            </div>
+
+            <div class="toolbar-right">
+                <button class="tb-btn" onclick="togglePanel('blocks')" id="btnBlocks" title="Toggle blocks panel">Blocks</button>
+                <button class="tb-btn" onclick="togglePanel('styles')" id="btnStyles" title="Toggle styles panel">Styles</button>
+                <button class="tb-btn" onclick="togglePanel('layers')" id="btnLayers" title="Toggle layers panel">Layers</button>
+                <div class="tb-divider"></div>
+                <button class="tb-btn" onclick="viewCode()" title="View HTML source">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4.5 4L1.5 7l3 3M9.5 4l3 3-3 3M8 2l-2 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="tb-btn tb-btn-primary" onclick="savePage()" id="btnSave" title="Save (Ctrl+S)">Save</button>
+            </div>
+        </div>
+
+        <!-- ── Production warning ── -->
+        <div id="prodWarning">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L1 13h12L7 1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M7 5v3M7 10v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span><strong>Production page</strong> — changes here will affect the live site when deployed. Edit with care.</span>
+        </div>
+
+        <!-- ── Editor ── -->
+        <div id="editorContainer">
+            <div id="gjs"></div>
+        </div>
+    </div>
+
+    <!-- ── Tailwind Classes Panel ── -->
+    <div id="classesPanel">
+        <label>Classes</label>
+        <input type="text" id="classesInput" placeholder="e.g. text-xl font-bold text-accent mb-4" spellcheck="false">
+        <button class="tb-btn" onclick="applyClasses()" style="font-size:0.65rem;padding:4px 8px;">Apply</button>
+    </div>
+
+    <!-- ── Toast ── -->
+    <div id="toast"></div>
+
+    <!-- ── Code Viewer Modal ── -->
+    <div id="codeModal" style="display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,0.7); align-items:center; justify-content:center;">
+        <div style="background:var(--ed-surface); border:1px solid var(--ed-border); border-radius:12px; width:90vw; max-width:900px; max-height:80vh; display:flex; flex-direction:column; overflow:hidden;">
+            <div style="padding:12px 16px; border-bottom:1px solid var(--ed-border); display:flex; align-items:center; justify-content:space-between;">
+                <span class="font-heading" style="font-weight:600; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.04em;">HTML Source</span>
+                <div style="display:flex; gap:8px;">
+                    <button class="tb-btn" onclick="copyCode()">Copy</button>
+                    <button class="tb-btn" onclick="closeCode()">Close</button>
+                </div>
+            </div>
+            <textarea id="codeView" readonly spellcheck="false" style="flex:1; background:var(--ed-base); color:var(--ed-txt-2); border:none; padding:16px; font-family:'JetBrains Mono',monospace; font-size:0.75rem; line-height:1.6; resize:none; outline:none; overflow:auto;"></textarea>
+        </div>
+    </div>
+
+    <script>
+    /* ══════════════════════════════════════════════
+       PAGE BUILDER — Core Logic
+       ══════════════════════════════════════════════ */
+
+    const API_BASE = window.location.origin;
+    let editor;
+    let currentSite = '';
+    let currentPage = '';
+    let storedHead = '';
+    let storedScripts = [];
+    let hasUnsaved = false;
+    let isPreviewMode = false;
+
+    // Production sites that show a warning
+    const PRODUCTION_SITES = ['bradfordcarlton'];
+    const SANDBOX_PAGE = 'builder-test.html';
+
+    /* ── HTML Parser: Split & Reassemble ── */
+
+    function parseHTML(html) {
+        // Extract <head> content
+        const headMatch = html.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+        const headContent = headMatch ? headMatch[1] : '';
+
+        // Extract <body> content
+        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        let bodyContent = bodyMatch ? bodyMatch[1] : html;
+
+        // Extract and store <script> tags from body
+        const scripts = [];
+        let scriptIndex = 0;
+        bodyContent = bodyContent.replace(
+            /<script[\s\S]*?<\/script>/gi,
+            (match) => {
+                scripts.push({ index: scriptIndex, content: match });
+                scriptIndex++;
+                return `<!-- __SCRIPT_PLACEHOLDER_${scriptIndex - 1}__ -->`;
+            }
+        );
+
+        return { headContent, bodyContent, scripts };
+    }
+
+    function reassembleHTML(headContent, bodyHtml, scripts) {
+        // Restore scripts into body
+        let body = bodyHtml;
+        scripts.forEach((s) => {
+            body = body.replace(
+                `<!-- __SCRIPT_PLACEHOLDER_${s.index}__ -->`,
+                s.content
+            );
+        });
+
+        // Also remove any leftover placeholders (if editor removed elements)
+        body = body.replace(/<!-- __SCRIPT_PLACEHOLDER_\d+__ -->/g, '');
+
+        return `<!DOCTYPE html>\n<html lang="en">\n<head>${headContent}</head>\n<body>\n${body}\n</body>\n</html>`;
+    }
+
+    /* ── Initialize GrapesJS ── */
+
+    function initEditor() {
+        editor = grapesjs.init({
+            container: '#gjs',
+            fromElement: false,
+            height: '100%',
+            width: 'auto',
+            storageManager: false,
+
+            canvas: {
+                styles: [],
+                scripts: [],
+            },
+
+            deviceManager: {
+                devices: [
+                    { name: 'Desktop', width: '' },
+                    { name: 'Tablet', width: '768px', widthMedia: '992px' },
+                    { name: 'Mobile', width: '375px', widthMedia: '768px' },
+                ],
+            },
+
+            panels: { defaults: [] },
+
+            blockManager: {
+                appendTo: '.gjs-pn-views-container',
+            },
+
+            styleManager: {
+                appendTo: '.gjs-pn-views-container',
+            },
+
+            layerManager: {
+                appendTo: '.gjs-pn-views-container',
+            },
+
+            plugins: ['gjs-preset-webpage'],
+            pluginsOpts: {
+                'gjs-preset-webpage': {
+                    blocksBasicOpts: { flexGrid: true },
+                    navbarOpts: false,
+                    countdownOpts: false,
+                    formsOpts: false,
+                },
+            },
+
+            assetManager: {
+                assets: [],
+                uploadFile: false,
+                autoAdd: true,
+            },
+        });
+
+        // Register custom blocks
+        registerCustomBlocks();
+
+        // Track changes
+        editor.on('change:changesCount', () => {
+            if (!hasUnsaved) {
+                hasUnsaved = true;
+                document.getElementById('unsavedDot').classList.add('show');
+            }
+        });
+
+        // Show classes panel on component select
+        editor.on('component:selected', (component) => {
+            const classes = component.getEl()?.className || '';
+            document.getElementById('classesInput').value = typeof classes === 'string' ? classes : '';
+            document.getElementById('classesPanel').classList.add('show');
+        });
+
+        editor.on('component:deselected', () => {
+            document.getElementById('classesPanel').classList.remove('show');
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                savePage();
+            }
+        });
+
+        // Add default panels config for views
+        editor.Panels.addPanel({
+            id: 'views',
+            el: '.gjs-pn-views-container',
+            buttons: [],
+        });
+    }
+
+    /* ── Custom Blocks ── */
+
+    function registerCustomBlocks() {
+        const bm = editor.BlockManager;
+
+        // -- Layout blocks --
+        bm.add('section-hero', {
+            label: 'Hero Section',
+            category: 'Sections',
+            content: `<section class="relative min-h-[60vh] flex items-center justify-center overflow-hidden py-20" style="background: linear-gradient(135deg, #08090D 0%, #11131A 50%, #0D1117 100%);">
+                <div class="relative z-10 max-w-4xl mx-auto px-6 text-center">
+                    <h1 class="font-heading text-4xl sm:text-5xl font-bold tracking-tight mb-6">Your Headline Here</h1>
+                    <p class="text-lg max-w-2xl mx-auto mb-8" style="color:#8A95A9;">Subheading text that supports your main message and encourages action.</p>
+                    <a href="#" class="inline-block px-8 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide" style="background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);">Call to Action</a>
+                </div>
+            </section>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 10h10M9 14h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+        });
+
+        bm.add('section-two-col', {
+            label: 'Two Columns',
+            category: 'Sections',
+            content: `<section class="py-20">
+                <div class="max-w-6xl mx-auto px-6">
+                    <div class="grid md:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <h2 class="font-heading text-3xl font-bold mb-4">Section Title</h2>
+                            <p style="color:#8A95A9;" class="leading-relaxed mb-6">Add your content here. This is a two-column layout great for pairing text with images or code blocks.</p>
+                        </div>
+                        <div class="rounded-xl p-8 border" style="background:rgba(17,19,26,0.8);border-color:#2A2E3D;">
+                            <p style="color:#8A95A9;">Right column content — image, code block, or additional information.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="9" height="16" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="4" width="9" height="16" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>',
+        });
+
+        bm.add('section-three-col', {
+            label: 'Three Cards',
+            category: 'Sections',
+            content: `<section class="py-20">
+                <div class="max-w-6xl mx-auto px-6">
+                    <div class="text-center mb-12">
+                        <h2 class="font-heading text-3xl font-bold mb-4">Section Title</h2>
+                        <p style="color:#8A95A9;" class="max-w-xl mx-auto">Brief description of what these cards represent.</p>
+                    </div>
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div class="rounded-xl p-6 border" style="background:rgba(17,19,26,0.8);border-color:#2A2E3D;">
+                            <h3 class="font-heading font-semibold text-lg mb-2">Card One</h3>
+                            <p style="color:#8A95A9;" class="text-sm leading-relaxed">Description for the first card goes here.</p>
+                        </div>
+                        <div class="rounded-xl p-6 border" style="background:rgba(17,19,26,0.8);border-color:#2A2E3D;">
+                            <h3 class="font-heading font-semibold text-lg mb-2">Card Two</h3>
+                            <p style="color:#8A95A9;" class="text-sm leading-relaxed">Description for the second card goes here.</p>
+                        </div>
+                        <div class="rounded-xl p-6 border" style="background:rgba(17,19,26,0.8);border-color:#2A2E3D;">
+                            <h3 class="font-heading font-semibold text-lg mb-2">Card Three</h3>
+                            <p style="color:#8A95A9;" class="text-sm leading-relaxed">Description for the third card goes here.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="1" y="4" width="6" height="16" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="4" width="6" height="16" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="17" y="4" width="6" height="16" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>',
+        });
+
+        bm.add('section-cta', {
+            label: 'CTA Section',
+            category: 'Sections',
+            content: `<section class="py-20">
+                <div class="max-w-3xl mx-auto px-6 text-center">
+                    <h2 class="font-heading text-3xl font-bold mb-4">Ready to Get Started?</h2>
+                    <p style="color:#8A95A9;" class="text-lg mb-8">A compelling call to action that drives conversion.</p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <a href="#" class="inline-block px-8 py-3.5 rounded-lg font-semibold text-sm uppercase" style="background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);">Primary Action</a>
+                        <a href="#" class="inline-block px-8 py-3.5 rounded-lg font-semibold text-sm uppercase" style="background:transparent;color:#8A95A9;border:1px solid #2A2E3D;">Secondary Action</a>
+                    </div>
+                </div>
+            </section>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 15h8M10 12h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+        });
+
+        bm.add('stats-bar', {
+            label: 'Stats Bar',
+            category: 'Sections',
+            content: `<section class="py-8 border-y" style="border-color:#2A2E3D; background:rgba(17,19,26,0.6);">
+                <div class="max-w-6xl mx-auto px-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                        <div>
+                            <div class="text-3xl font-bold mb-1" style="color:#06D6A0;">100+</div>
+                            <div class="text-sm" style="color:#525E73;">Metric One</div>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold mb-1" style="color:#4CC9F0;">50+</div>
+                            <div class="text-sm" style="color:#525E73;">Metric Two</div>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold mb-1" style="color:#FFD93D;">99%</div>
+                            <div class="text-sm" style="color:#525E73;">Metric Three</div>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold mb-1" style="color:#FF6B6B;">24/7</div>
+                            <div class="text-sm" style="color:#525E73;">Metric Four</div>
+                        </div>
+                    </div>
+                </div>
+            </section>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 18V10M9 18V6M14 18v-5M19 18V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        });
+
+        // -- Data Modules --
+        bm.add('data-table', {
+            label: 'Data Table',
+            category: 'Data Modules',
+            content: `<div class="rounded-xl border overflow-hidden" data-module="table" data-source="supabase" data-table="your_table" style="background:rgba(17,19,26,0.8);border-color:#2A2E3D;">
+                <div class="px-5 py-3 border-b flex items-center justify-between" style="border-color:#2A2E3D;">
+                    <span class="font-semibold text-sm" style="font-family:'Chakra Petch',system-ui;">Table Title</span>
+                    <span class="text-xs" style="font-family:'JetBrains Mono',monospace;color:#525E73;">data-module: table</span>
+                </div>
+                <table class="w-full text-sm">
+                    <thead><tr style="background:rgba(255,255,255,0.02);border-bottom:1px solid #2A2E3D;">
+                        <th class="text-left px-5 py-3 text-xs uppercase" style="color:#8A95A9;font-family:'Chakra Petch',system-ui;">Column A</th>
+                        <th class="text-left px-5 py-3 text-xs uppercase" style="color:#8A95A9;font-family:'Chakra Petch',system-ui;">Column B</th>
+                        <th class="text-left px-5 py-3 text-xs uppercase" style="color:#8A95A9;font-family:'Chakra Petch',system-ui;">Status</th>
+                    </tr></thead>
+                    <tbody>
+                        <tr style="border-bottom:1px solid rgba(42,46,61,0.5);"><td class="px-5 py-3">Sample Row 1</td><td class="px-5 py-3" style="color:#8A95A9;">Value</td><td class="px-5 py-3"><span class="inline-block px-2 py-0.5 rounded text-xs" style="background:rgba(6,214,160,0.15);color:#06D6A0;">Active</span></td></tr>
+                        <tr style="border-bottom:1px solid rgba(42,46,61,0.5);"><td class="px-5 py-3">Sample Row 2</td><td class="px-5 py-3" style="color:#8A95A9;">Value</td><td class="px-5 py-3"><span class="inline-block px-2 py-0.5 rounded text-xs" style="background:rgba(255,217,61,0.15);color:#FFD93D;">Pending</span></td></tr>
+                    </tbody>
+                </table>
+            </div>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M3 9h18M3 15h18M9 3v18" stroke="currentColor" stroke-width="1.2"/></svg>',
+        });
+
+        bm.add('stats-widget', {
+            label: 'Stats Widget',
+            category: 'Data Modules',
+            content: `<div class="rounded-xl p-5 border" data-module="stats" data-source="webhook" data-endpoint="" style="background:rgba(17,19,26,0.8);border-color:#2A2E3D;">
+                <div class="text-xs uppercase tracking-wider mb-2" style="color:#525E73;font-family:'Chakra Petch',system-ui;">Metric Name</div>
+                <div class="text-4xl font-bold mb-1" style="color:#06D6A0;font-family:'Chakra Petch',system-ui;">0</div>
+                <div class="text-xs" style="color:#8A95A9;">Updated via webhook</div>
+            </div>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 14l3-4 3 2 4-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        });
+
+        bm.add('form-block', {
+            label: 'Lead Form',
+            category: 'Data Modules',
+            content: `<div class="rounded-xl p-8 border" data-module="form" data-endpoint="" style="background:rgba(17,19,26,0.8);border-color:#2A2E3D;">
+                <h3 class="text-xl font-bold mb-2" style="font-family:'Chakra Petch',system-ui;">Get in Touch</h3>
+                <p class="text-sm mb-6" style="color:#8A95A9;">Fill out the form and we'll get back to you.</p>
+                <form class="space-y-4">
+                    <input type="text" placeholder="Full Name" class="w-full px-4 py-3 rounded-lg text-sm" style="background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;color:#E8ECF1;outline:none;">
+                    <input type="email" placeholder="Email Address" class="w-full px-4 py-3 rounded-lg text-sm" style="background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;color:#E8ECF1;outline:none;">
+                    <textarea placeholder="Message" rows="3" class="w-full px-4 py-3 rounded-lg text-sm" style="background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;color:#E8ECF1;outline:none;resize:vertical;"></textarea>
+                    <button type="submit" class="w-full py-3 rounded-lg font-semibold text-sm uppercase" style="background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);cursor:pointer;">Submit</button>
+                </form>
+            </div>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 8h10M7 12h10M7 16h6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+        });
+
+        // -- Content Blocks --
+        bm.add('text-block', {
+            label: 'Text Block',
+            category: 'Content',
+            content: `<div class="max-w-3xl mx-auto px-6 py-8">
+                <h2 class="text-2xl font-bold mb-4" style="font-family:'Chakra Petch',system-ui;">Heading</h2>
+                <p class="leading-relaxed" style="color:#8A95A9;">Your paragraph text goes here. Click to edit this content directly in the visual editor. You can change fonts, colors, and spacing using the style panel on the right.</p>
+            </div>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h10M4 17h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+        });
+
+        bm.add('image-block', {
+            label: 'Image',
+            category: 'Content',
+            content: `<div class="max-w-4xl mx-auto px-6 py-8">
+                <img src="https://placehold.co/800x400/11131A/525E73?text=Your+Image+Here" class="w-full rounded-xl" alt="Placeholder image">
+            </div>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><path d="M3 16l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        });
+
+        bm.add('video-embed', {
+            label: 'Video Embed',
+            category: 'Content',
+            content: `<div class="max-w-4xl mx-auto px-6 py-8">
+                <div class="relative rounded-xl overflow-hidden" style="padding-bottom:56.25%;background:#11131A;border:1px solid #2A2E3D;">
+                    <div class="absolute inset-0 flex items-center justify-center" style="color:#525E73;">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/><path d="M20 16l12 8-12 8V16z" fill="currentColor"/></svg>
+                    </div>
+                </div>
+            </div>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M10 9l5 3-5 3V9z" fill="currentColor"/></svg>',
+        });
+
+        bm.add('testimonial', {
+            label: 'Testimonial',
+            category: 'Content',
+            content: `<div class="max-w-2xl mx-auto px-6 py-8 text-center">
+                <div class="text-4xl mb-4" style="color:#2A2E3D;">&ldquo;</div>
+                <p class="text-lg italic mb-6 leading-relaxed" style="color:#8A95A9;">This is a testimonial quote. Replace with a real customer testimonial to build trust and credibility.</p>
+                <div class="flex items-center justify-center gap-3">
+                    <div class="w-10 h-10 rounded-full" style="background:rgba(6,214,160,0.15);"></div>
+                    <div class="text-left">
+                        <div class="font-semibold text-sm">Customer Name</div>
+                        <div class="text-xs" style="color:#525E73;">Title, Company</div>
+                    </div>
+                </div>
+            </div>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M10 8H6a2 2 0 00-2 2v2a2 2 0 002 2h1l-1 4h2l1-4h1V8zm8 0h-4a2 2 0 00-2 2v2a2 2 0 002 2h1l-1 4h2l1-4h1V8z" stroke="currentColor" stroke-width="1.5"/></svg>',
+        });
+
+        // -- Utility --
+        bm.add('spacer', {
+            label: 'Spacer',
+            category: 'Utility',
+            content: `<div style="height:60px;"></div>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 8h16M4 16h16M12 8v8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="2 2"/></svg>',
+        });
+
+        bm.add('divider', {
+            label: 'Divider',
+            category: 'Utility',
+            content: `<hr style="border:none;border-top:1px solid #2A2E3D;margin:2rem auto;max-width:80%;">`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 12h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+        });
+
+        bm.add('ad-slot', {
+            label: 'Ad Slot',
+            category: 'Utility',
+            content: `<div class="mx-auto my-8 rounded-lg flex items-center justify-center" data-module="ad" data-placement="" style="max-width:728px;height:90px;background:rgba(42,46,61,0.3);border:1px dashed #2A2E3D;">
+                <span class="text-xs uppercase tracking-wider" style="color:#525E73;font-family:'JetBrains Mono',monospace;">Ad Slot (728x90)</span>
+            </div>`,
+            media: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="10" rx="1" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/><path d="M8 12h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+        });
+    }
+
+    /* ── API Calls ── */
+
+    async function fetchJSON(url) {
+        const resp = await fetch(API_BASE + url);
+        if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+        return resp.json();
+    }
+
+    async function loadSites() {
+        try {
+            const sites = await fetchJSON('/api/sites');
+            const sel = document.getElementById('siteSelect');
+            sel.innerHTML = '<option value="">Choose site...</option>';
+            sites.forEach((s) => {
+                const opt = document.createElement('option');
+                opt.value = s.name;
+                opt.textContent = `${s.name} (${s.pages} pages)`;
+                sel.appendChild(opt);
+            });
+            // Default to sandbox
+            const sandbox = sites.find((s) => s.name === 'sandbox');
+            if (sandbox) {
+                sel.value = 'sandbox';
+                await loadPages();
+            }
+        } catch (err) {
+            showToast('Failed to load sites: ' + err.message, 'error');
+        }
+    }
+
+    async function loadPages() {
+        const site = document.getElementById('siteSelect').value;
+        const sel = document.getElementById('pageSelect');
+        sel.innerHTML = '<option value="">Loading...</option>';
+
+        if (!site) {
+            sel.innerHTML = '<option value="">Select a site first</option>';
+            return;
+        }
+
+        // Show/hide production warning
+        const warn = document.getElementById('prodWarning');
+        warn.classList.toggle('show', PRODUCTION_SITES.includes(site));
+
+        try {
+            const pages = await fetchJSON(`/api/sites/${site}/pages`);
+            sel.innerHTML = '<option value="">Choose page...</option>';
+            pages.forEach((p) => {
+                const opt = document.createElement('option');
+                opt.value = p.name;
+                const kb = (p.size / 1024).toFixed(0);
+                opt.textContent = `${p.name} (${kb}KB)`;
+                sel.appendChild(opt);
+            });
+            currentSite = site;
+
+            // Auto-select builder-test.html if available
+            if (site === 'sandbox' && pages.find((p) => p.name === SANDBOX_PAGE)) {
+                sel.value = SANDBOX_PAGE;
+                loadPage();
+            }
+        } catch (err) {
+            showToast('Failed to load pages: ' + err.message, 'error');
+        }
+    }
+
+    async function loadPage() {
+        const site = document.getElementById('siteSelect').value;
+        const page = document.getElementById('pageSelect').value;
+        if (!site || !page) return;
+
+        try {
+            showToast('Loading page...', 'info');
+            const data = await fetchJSON(`/api/sites/${site}/pages/${page}`);
+            const { headContent, bodyContent, scripts } = parseHTML(data.content);
+
+            storedHead = headContent;
+            storedScripts = scripts;
+            currentPage = page;
+
+            // Load body into GrapesJS
+            editor.setComponents(bodyContent);
+            editor.setStyle(''); // Clear styles — Tailwind handles everything
+
+            // Inject Tailwind + styles into canvas iframe
+            injectCanvasResources(headContent);
+
+            // Load assets
+            loadAssets(site);
+
+            // Reset unsaved state
+            hasUnsaved = false;
+            document.getElementById('unsavedDot').classList.remove('show');
+
+            showToast(`Loaded ${page}`, 'success');
+        } catch (err) {
+            showToast('Failed to load page: ' + err.message, 'error');
+        }
+    }
+
+    function injectCanvasResources(headContent) {
+        const frame = editor.Canvas.getFrameEl();
+        if (!frame) return;
+
+        const doc = frame.contentDocument;
+        const head = doc.head;
+
+        // Clear previous injections
+        head.querySelectorAll('[data-editor-injected]').forEach((el) => el.remove());
+
+        // Extract and inject stylesheets from the original head
+        const linkMatches = headContent.matchAll(/<link[^>]*href=["']([^"']+)["'][^>]*>/gi);
+        for (const m of linkMatches) {
+            const link = doc.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = m[1];
+            link.setAttribute('data-editor-injected', 'true');
+            head.appendChild(link);
+        }
+
+        // Extract and inject <style> blocks
+        const styleMatches = headContent.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+        for (const m of styleMatches) {
+            const style = doc.createElement('style');
+            style.textContent = m[1];
+            style.setAttribute('data-editor-injected', 'true');
+            head.appendChild(style);
+        }
+
+        // Inject Tailwind CDN
+        const twScript = doc.createElement('script');
+        twScript.src = 'https://cdn.tailwindcss.com';
+        twScript.setAttribute('data-editor-injected', 'true');
+        head.appendChild(twScript);
+
+        // Extract and inject tailwind.config script
+        const configMatch = headContent.match(/<script>\s*tailwind\.config\s*=\s*\{[\s\S]*?\}\s*<\/script>/i);
+        if (configMatch) {
+            const configScript = doc.createElement('script');
+            configScript.textContent = configMatch[0].replace(/<\/?script>/gi, '');
+            configScript.setAttribute('data-editor-injected', 'true');
+            // Wait for Tailwind to load before applying config
+            twScript.onload = () => head.appendChild(configScript);
+        }
+
+        // Inject Google Fonts
+        const fontMatches = headContent.matchAll(/<link[^>]*fonts\.googleapis\.com[^>]*>/gi);
+        for (const m of fontMatches) {
+            const temp = doc.createElement('div');
+            temp.innerHTML = m[0];
+            const link = temp.firstChild;
+            if (link) {
+                link.setAttribute('data-editor-injected', 'true');
+                head.appendChild(link);
+            }
+        }
+    }
+
+    async function loadAssets(site) {
+        try {
+            const assets = await fetchJSON(`/api/sites/${site}/assets`);
+            const assetList = assets.map((a) => ({
+                src: `${API_BASE}/sites/${site}/${a.path}`,
+                name: a.name,
+                type: 'image',
+            }));
+            editor.AssetManager.add(assetList);
+        } catch (err) {
+            console.warn('Could not load assets:', err);
+        }
+    }
+
+    /* ── Save ── */
+
+    async function savePage() {
+        if (!currentSite || !currentPage) {
+            return showToast('No page loaded to save', 'error');
+        }
+
+        const btn = document.getElementById('btnSave');
+        btn.textContent = 'Saving...';
+        btn.disabled = true;
+
+        try {
+            const bodyHtml = editor.getHtml();
+            const fullHtml = reassembleHTML(storedHead, bodyHtml, storedScripts);
+
+            const resp = await fetch(`${API_BASE}/api/sites/${currentSite}/pages/${currentPage}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: fullHtml }),
+            });
+
+            if (!resp.ok) throw new Error('Save failed');
+
+            hasUnsaved = false;
+            document.getElementById('unsavedDot').classList.remove('show');
+            showToast(`Saved ${currentPage}`, 'success');
+        } catch (err) {
+            showToast('Save failed: ' + err.message, 'error');
+        } finally {
+            btn.textContent = 'Save';
+            btn.disabled = false;
+        }
+    }
+
+    /* ── Device Switching ── */
+
+    function setDevice(device) {
+        editor.setDevice(device);
+        document.querySelectorAll('#btnDesktop, #btnTablet, #btnMobile').forEach((b) => b.classList.remove('active'));
+        document.getElementById('btn' + device).classList.add('active');
+    }
+
+    /* ── Preview ── */
+
+    function togglePreview() {
+        if (isPreviewMode) {
+            editor.stopCommand('preview');
+            document.getElementById('btnPreview').classList.remove('active');
+        } else {
+            editor.runCommand('preview');
+            document.getElementById('btnPreview').classList.add('active');
+        }
+        isPreviewMode = !isPreviewMode;
+    }
+
+    /* ── Panel Toggling ── */
+
+    function togglePanel(panel) {
+        const viewsContainer = document.querySelector('.gjs-pn-views-container');
+        if (!viewsContainer) return;
+
+        const panelMap = {
+            blocks: 'open-blocks',
+            styles: 'open-sm',
+            layers: 'open-layers',
+        };
+
+        const cmd = panelMap[panel];
+        if (!cmd) return;
+
+        // Toggle the panel
+        if (editor.Commands.isActive(cmd)) {
+            editor.stopCommand(cmd);
+        } else {
+            // Close others first
+            Object.values(panelMap).forEach((c) => {
+                if (c !== cmd && editor.Commands.isActive(c)) editor.stopCommand(c);
+            });
+            editor.runCommand(cmd);
+        }
+
+        // Update button states
+        ['blocks', 'styles', 'layers'].forEach((p) => {
+            const btn = document.getElementById('btn' + p.charAt(0).toUpperCase() + p.slice(1));
+            const isActive = editor.Commands.isActive(panelMap[p]);
+            btn.classList.toggle('active', isActive);
+        });
+    }
+
+    /* ── Classes Editor ── */
+
+    function applyClasses() {
+        const selected = editor.getSelected();
+        if (!selected) return;
+
+        const input = document.getElementById('classesInput');
+        const newClasses = input.value.trim();
+
+        // Set the class attribute directly
+        selected.setAttributes({ ...selected.getAttributes(), class: newClasses });
+        showToast('Classes applied', 'success');
+    }
+
+    /* ── Code Viewer ── */
+
+    function viewCode() {
+        const bodyHtml = editor.getHtml();
+        const fullHtml = reassembleHTML(storedHead, bodyHtml, storedScripts);
+
+        // Basic formatting
+        const formatted = fullHtml
+            .replace(/></g, '>\n<')
+            .replace(/\n\s*\n/g, '\n');
+
+        document.getElementById('codeView').value = formatted;
+        document.getElementById('codeModal').style.display = 'flex';
+    }
+
+    function closeCode() {
+        document.getElementById('codeModal').style.display = 'none';
+    }
+
+    function copyCode() {
+        const textarea = document.getElementById('codeView');
+        navigator.clipboard.writeText(textarea.value);
+        showToast('HTML copied to clipboard', 'success');
+    }
+
+    /* ── Toast ── */
+
+    let toastTimeout;
+    function showToast(msg, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = `show ${type}`;
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            toast.className = '';
+        }, 3000);
+    }
+
+    /* ── Boot ── */
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initEditor();
+        loadSites();
+
+        // Open blocks panel by default
+        setTimeout(() => {
+            editor.runCommand('open-blocks');
+            document.getElementById('btnBlocks').classList.add('active');
+        }, 500);
+    });
+    </script>
+</body>
+</html>
