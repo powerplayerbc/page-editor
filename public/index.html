@@ -748,15 +748,36 @@
         });
         body = body.replace(/<!-- __SCRIPT_\d+__ -->/g, '');
 
-        // Auto-inject VSL click-to-play script if the page has any VSL blocks
-        let vslScript = '';
+        // Auto-inject interactive scripts for blocks that need them
+        let injectedScripts = '';
+
+        // VSL click-to-play
         if (body.includes('data-module="vsl"')) {
-            vslScript = `\n<script>
+            injectedScripts += `\n<script>
 document.addEventListener('click',function(e){var w=e.target.closest('[data-vsl-wrapper]');if(!w)return;var p=w.closest('[data-module="vsl"]');if(!p)return;var u=p.getAttribute('data-youtube');if(!u)return;var m=u.match(/(?:youtube\\.com\\/(?:watch\\?v=|embed\\/)|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/);if(!m)return;var f=document.createElement('iframe');f.src='https://www.youtube.com/embed/'+m[1]+'?autoplay=1&rel=0';f.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:none;';f.allow='accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture';f.allowFullscreen=true;w.innerHTML='';w.appendChild(f);});
 <\/script>`;
         }
 
-        return `<!DOCTYPE html>\n<html lang="en">\n<head>${headContent}</head>\n<body>\n${body}${vslScript}\n</body>\n</html>`;
+        // FAQ accordion expand/collapse
+        if (body.includes('data-module="faq"')) {
+            injectedScripts += `\n<style>
+.faq-item .faq-a{max-height:0;overflow:hidden;transition:max-height 0.3s ease}
+.faq-item.open .faq-a{max-height:500px}
+.faq-item.open .faq-icon{transform:rotate(45deg)}
+<\/style>
+<script>
+document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');if(!q)return;q.parentElement.classList.toggle('open');});
+<\/script>`;
+        }
+
+        // Countdown timer
+        if (body.includes('data-module="countdown"')) {
+            injectedScripts += `\n<script>
+(function(){var timers=document.querySelectorAll('[data-module="countdown"]');timers.forEach(function(t){var hrs=parseFloat(t.getAttribute('data-countdown-hours'))||24;var key='cd_'+location.pathname+'_'+hrs;var stored=localStorage.getItem(key);var target;if(stored){target=parseInt(stored)}else{target=Date.now()+hrs*3600000;localStorage.setItem(key,target)}function tick(){var left=Math.max(0,target-Date.now());var s=Math.floor(left/1000);var h=Math.floor(s/3600);var m=Math.floor((s%3600)/60);s=s%60;var eh=t.querySelector('[data-cd-h]');var em=t.querySelector('[data-cd-m]');var es=t.querySelector('[data-cd-s]');if(eh)eh.textContent=String(h).padStart(2,'0');if(em)em.textContent=String(m).padStart(2,'0');if(es)es.textContent=String(s).padStart(2,'0');if(left>0)requestAnimationFrame(tick)}tick()})})();
+<\/script>`;
+        }
+
+        return `<!DOCTYPE html>\n<html lang="en">\n<head>${headContent}</head>\n<body>\n${body}${injectedScripts}\n</body>\n</html>`;
     }
 
     /* ── Initialize GrapesJS ── */
@@ -1504,6 +1525,27 @@ document.addEventListener('click',function(e){var w=e.target.closest('[data-vsl-
             </div>`,
         });
 
+        // Register Countdown as a custom component type with hours trait
+        editor.Components.addType('countdown-block', {
+            isComponent: el => el && el.getAttribute && el.getAttribute('data-module') === 'countdown',
+            model: {
+                defaults: {
+                    tagName: 'div',
+                    attributes: { 'data-module': 'countdown', 'data-countdown-hours': '24' },
+                    traits: [
+                        {
+                            type: 'number',
+                            name: 'data-countdown-hours',
+                            label: 'Countdown Hours',
+                            placeholder: '24',
+                            min: 0.1,
+                            step: 1,
+                        },
+                    ],
+                },
+            },
+        });
+
         // Register VSL as a custom component type with YouTube trait
         editor.Components.addType('vsl-player', {
             isComponent: el => el && el.getAttribute && el.getAttribute('data-module') === 'vsl',
@@ -1601,25 +1643,45 @@ document.addEventListener('click',function(e){var w=e.target.closest('[data-vsl-
         bm.add('faq-accordion', {
             label: 'FAQ Accordion',
             category: 'Sales',
-            attributes: { title: 'Click-to-expand questions and answers' },
-            content: `<div style="max-width:640px;margin:2rem auto;padding:0 1rem;">
+            attributes: { title: 'Click-to-expand Q&A — double-click text to edit questions and answers' },
+            content: `<div data-module="faq" style="max-width:640px;margin:2rem auto;padding:0 1rem;">
                 <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.25rem;font-weight:700;text-align:center;margin-bottom:1.5rem;">Frequently Asked Questions</h3>
-                <details style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;margin-bottom:0.5rem;">
-                    <summary style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">How does this work? <span style="color:#525E73;font-size:0.7rem;">+</span></summary>
-                    <div style="padding:0 1rem 0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Your answer goes here. Explain clearly and concisely to remove purchase anxiety.</div>
-                </details>
-                <details style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;margin-bottom:0.5rem;">
-                    <summary style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">What's included? <span style="color:#525E73;font-size:0.7rem;">+</span></summary>
-                    <div style="padding:0 1rem 0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Detail everything the customer receives when they purchase or sign up.</div>
-                </details>
-                <details style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;margin-bottom:0.5rem;">
-                    <summary style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">Is there a guarantee? <span style="color:#525E73;font-size:0.7rem;">+</span></summary>
-                    <div style="padding:0 1rem 0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Yes! We offer a 30-day money-back guarantee. No questions asked.</div>
-                </details>
-                <details style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;">
-                    <summary style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;list-style:none;display:flex;justify-content:space-between;align-items:center;">How do I get support? <span style="color:#525E73;font-size:0.7rem;">+</span></summary>
-                    <div style="padding:0 1rem 0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Email us anytime or use the live chat. We typically respond within 2 hours.</div>
-                </details>
+                <div class="faq-item" style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;margin-bottom:0.5rem;">
+                    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')" style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;display:flex;justify-content:space-between;align-items:center;user-select:none;">
+                        <span>How does this work?</span>
+                        <span class="faq-icon" style="color:#525E73;font-size:0.8rem;transition:transform 0.2s;">+</span>
+                    </div>
+                    <div class="faq-a" style="max-height:0;overflow:hidden;transition:max-height 0.3s ease;padding:0 1rem;">
+                        <div style="padding-bottom:0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Your answer goes here. Explain clearly and concisely to remove purchase anxiety.</div>
+                    </div>
+                </div>
+                <div class="faq-item" style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;margin-bottom:0.5rem;">
+                    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')" style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;display:flex;justify-content:space-between;align-items:center;user-select:none;">
+                        <span>What's included?</span>
+                        <span class="faq-icon" style="color:#525E73;font-size:0.8rem;transition:transform 0.2s;">+</span>
+                    </div>
+                    <div class="faq-a" style="max-height:0;overflow:hidden;transition:max-height 0.3s ease;padding:0 1rem;">
+                        <div style="padding-bottom:0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Detail everything the customer receives when they purchase or sign up.</div>
+                    </div>
+                </div>
+                <div class="faq-item" style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;margin-bottom:0.5rem;">
+                    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')" style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;display:flex;justify-content:space-between;align-items:center;user-select:none;">
+                        <span>Is there a guarantee?</span>
+                        <span class="faq-icon" style="color:#525E73;font-size:0.8rem;transition:transform 0.2s;">+</span>
+                    </div>
+                    <div class="faq-a" style="max-height:0;overflow:hidden;transition:max-height 0.3s ease;padding:0 1rem;">
+                        <div style="padding-bottom:0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Yes! We offer a 30-day money-back guarantee. No questions asked.</div>
+                    </div>
+                </div>
+                <div class="faq-item" style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.5rem;">
+                    <div class="faq-q" onclick="this.parentElement.classList.toggle('open')" style="padding:0.875rem 1rem;cursor:pointer;font-weight:500;font-size:0.875rem;display:flex;justify-content:space-between;align-items:center;user-select:none;">
+                        <span>How do I get support?</span>
+                        <span class="faq-icon" style="color:#525E73;font-size:0.8rem;transition:transform 0.2s;">+</span>
+                    </div>
+                    <div class="faq-a" style="max-height:0;overflow:hidden;transition:max-height 0.3s ease;padding:0 1rem;">
+                        <div style="padding-bottom:0.875rem;color:#8A95A9;font-size:0.8rem;line-height:1.6;">Email us anytime or use the live chat. We typically respond within 2 hours.</div>
+                    </div>
+                </div>
             </div>`,
         });
 
@@ -1643,25 +1705,62 @@ document.addEventListener('click',function(e){var w=e.target.closest('[data-vsl-
         bm.add('checkout-form', {
             label: 'Checkout Form',
             category: 'Checkout',
-            attributes: { title: 'Full checkout — contact info + address fields. Posts to webhook.' },
-            content: `<div data-module="form" data-endpoint="" data-type="checkout" style="max-width:480px;margin:1rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:1.5rem;">
+            attributes: { title: 'Full checkout — contact, payment, shipping/billing. Posts to webhook.' },
+            content: `<div data-module="form" data-endpoint="" data-type="checkout" style="max-width:500px;margin:1rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:1.5rem;">
                 <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.125rem;font-weight:700;margin-bottom:1.25rem;">Complete Your Order</h3>
                 <form style="display:flex;flex-direction:column;gap:0.75rem;" onsubmit="return false;">
+                    <!-- Contact Info -->
+                    <div style="font-family:'Chakra Petch',system-ui;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#8A95A9;margin-bottom:-0.25rem;">Contact Information</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
-                        <input type="text" placeholder="First Name" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
-                        <input type="text" placeholder="Last Name" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                        <input type="text" name="first_name" placeholder="First Name" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                        <input type="text" name="last_name" placeholder="Last Name" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
                     </div>
-                    <input type="email" placeholder="Email Address" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
-                    <input type="tel" placeholder="Phone Number" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <input type="email" name="email" placeholder="Email Address" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <input type="tel" name="phone" placeholder="Phone Number" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+
+                    <!-- Payment -->
                     <hr style="border:none;border-top:1px solid #2A2E3D;margin:0.25rem 0;">
-                    <input type="text" placeholder="Street Address" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
-                    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:0.75rem;">
-                        <input type="text" placeholder="City" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
-                        <input type="text" placeholder="State" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
-                        <input type="text" placeholder="ZIP" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <div style="font-family:'Chakra Petch',system-ui;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#8A95A9;margin-bottom:-0.25rem;display:flex;align-items:center;gap:0.4rem;"><span style="color:#06D6A0;">&#128274;</span> Payment Details</div>
+                    <input type="text" name="card_number" placeholder="Card Number" maxlength="19" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <input type="text" name="card_expiry" placeholder="MM / YY" maxlength="7" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;font-family:'JetBrains Mono',monospace;">
+                        <input type="text" name="card_cvv" placeholder="CVV" maxlength="4" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;font-family:'JetBrains Mono',monospace;">
                     </div>
+                    <input type="text" name="card_name" placeholder="Name on Card" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+
+                    <!-- Shipping Address -->
+                    <hr style="border:none;border-top:1px solid #2A2E3D;margin:0.25rem 0;">
+                    <div style="font-family:'Chakra Petch',system-ui;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#8A95A9;margin-bottom:-0.25rem;">Shipping Address</div>
+                    <input type="text" name="ship_address" placeholder="Street Address" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:0.75rem;">
+                        <input type="text" name="ship_city" placeholder="City" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                        <input type="text" name="ship_state" placeholder="State" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                        <input type="text" name="ship_zip" placeholder="ZIP" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    </div>
+
+                    <!-- Billing Address Toggle -->
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.78rem;color:#8A95A9;margin:0.25rem 0;">
+                        <input type="checkbox" name="billing_same" checked onclick="var b=this.closest('form').querySelector('.billing-section');b.style.display=this.checked?'none':'flex';" style="accent-color:#06D6A0;width:16px;height:16px;">
+                        Billing address same as shipping
+                    </label>
+
+                    <!-- Billing Address (hidden by default) -->
+                    <div class="billing-section" style="display:none;flex-direction:column;gap:0.75rem;">
+                        <div style="font-family:'Chakra Petch',system-ui;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#8A95A9;margin-bottom:-0.25rem;">Billing Address</div>
+                        <input type="text" name="bill_address" placeholder="Street Address" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:0.75rem;">
+                            <input type="text" name="bill_city" placeholder="City" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                            <input type="text" name="bill_state" placeholder="State" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                            <input type="text" name="bill_zip" placeholder="ZIP" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                        </div>
+                    </div>
+
                     <button type="submit" style="padding:0.875rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.5rem;font-weight:700;cursor:pointer;font-size:0.9rem;font-family:'Chakra Petch',system-ui;text-transform:uppercase;letter-spacing:0.04em;margin-top:0.25rem;">Complete Purchase</button>
                 </form>
+                <div style="display:flex;justify-content:center;gap:1rem;margin-top:0.75rem;opacity:0.5;font-size:0.65rem;color:#8A95A9;">
+                    <span>&#128274; SSL Encrypted</span>
+                    <span>&#128179; Secure Payment</span>
+                </div>
             </div>`,
         });
 
@@ -1748,13 +1847,13 @@ document.addEventListener('click',function(e){var w=e.target.closest('[data-vsl-
         bm.add('countdown-timer', {
             label: 'Countdown Timer',
             category: 'Upsell / Offers',
-            attributes: { title: 'Live countdown clock — creates urgency on any page' },
-            content: `<div data-module="countdown" style="max-width:500px;margin:1.5rem auto;text-align:center;padding:1.25rem;">
+            attributes: { title: 'Live countdown — set hours in Settings tab. Counts down in real time.' },
+            content: `<div data-module="countdown" data-countdown-hours="24" style="max-width:500px;margin:1.5rem auto;text-align:center;padding:1.25rem;">
                 <p style="color:#FF6B6B;font-family:'JetBrains Mono',monospace;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;">&#9200; This offer expires in</p>
                 <div style="display:flex;justify-content:center;gap:0.75rem;">
-                    <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:0.5rem;padding:0.75rem 1rem;min-width:60px;"><div style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.75rem;color:#FF6B6B;">23</div><div style="font-size:0.6rem;color:#8A95A9;text-transform:uppercase;">Hours</div></div>
-                    <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:0.5rem;padding:0.75rem 1rem;min-width:60px;"><div style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.75rem;color:#FF6B6B;">59</div><div style="font-size:0.6rem;color:#8A95A9;text-transform:uppercase;">Minutes</div></div>
-                    <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:0.5rem;padding:0.75rem 1rem;min-width:60px;"><div style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.75rem;color:#FF6B6B;">47</div><div style="font-size:0.6rem;color:#8A95A9;text-transform:uppercase;">Seconds</div></div>
+                    <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:0.5rem;padding:0.75rem 1rem;min-width:60px;"><div data-cd-h style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.75rem;color:#FF6B6B;">23</div><div style="font-size:0.6rem;color:#8A95A9;text-transform:uppercase;">Hours</div></div>
+                    <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:0.5rem;padding:0.75rem 1rem;min-width:60px;"><div data-cd-m style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.75rem;color:#FF6B6B;">59</div><div style="font-size:0.6rem;color:#8A95A9;text-transform:uppercase;">Minutes</div></div>
+                    <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:0.5rem;padding:0.75rem 1rem;min-width:60px;"><div data-cd-s style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.75rem;color:#FF6B6B;">59</div><div style="font-size:0.6rem;color:#8A95A9;text-transform:uppercase;">Seconds</div></div>
                 </div>
             </div>`,
         });
@@ -1901,6 +2000,79 @@ document.addEventListener('click',function(e){var w=e.target.closest('[data-vsl-
             const thumb = el.querySelector('[data-vsl-thumb]');
             if (thumb) {
                 thumb.style.backgroundImage = `url(https://img.youtube.com/vi/${vid}/maxresdefault.jpg)`;
+            }
+        });
+    }
+
+    /* ── Canvas Interactive Scripts (FAQ + Countdown in editor preview) ── */
+
+    function initCanvasInteractiveScripts() {
+        editor.on('canvas:frame:load', ({ window: frameWin }) => {
+            if (!frameWin) return;
+            const doc = frameWin.document;
+
+            // FAQ accordion style + click handler
+            const faqStyle = doc.createElement('style');
+            faqStyle.textContent = '.faq-item .faq-a{max-height:0;overflow:hidden;transition:max-height 0.3s ease}.faq-item.open .faq-a{max-height:500px}.faq-item.open .faq-icon{transform:rotate(45deg)}';
+            faqStyle.setAttribute('data-ed', '1');
+            doc.head.appendChild(faqStyle);
+
+            doc.addEventListener('click', (e) => {
+                const q = e.target.closest('.faq-q');
+                if (!q) return;
+                q.parentElement.classList.toggle('open');
+            });
+
+            // Countdown timer
+            function startCountdowns() {
+                const timers = doc.querySelectorAll('[data-module="countdown"]');
+                timers.forEach(t => {
+                    const hrs = parseFloat(t.getAttribute('data-countdown-hours')) || 24;
+                    const target = Date.now() + hrs * 3600000;
+                    function tick() {
+                        const left = Math.max(0, target - Date.now());
+                        const s = Math.floor(left / 1000);
+                        const h = Math.floor(s / 3600);
+                        const m = Math.floor((s % 3600) / 60);
+                        const sec = s % 60;
+                        const eh = t.querySelector('[data-cd-h]');
+                        const em = t.querySelector('[data-cd-m]');
+                        const es = t.querySelector('[data-cd-s]');
+                        if (eh) eh.textContent = String(h).padStart(2, '0');
+                        if (em) em.textContent = String(m).padStart(2, '0');
+                        if (es) es.textContent = String(sec).padStart(2, '0');
+                        if (left > 0) requestAnimationFrame(tick);
+                    }
+                    tick();
+                });
+            }
+            // Delay so components render first
+            setTimeout(startCountdowns, 1500);
+        });
+
+        // Re-run countdown when new countdown blocks are dropped
+        editor.on('block:drag:stop', (component) => {
+            if (!component) return;
+            const el = component.getEl();
+            if (!el || !el.getAttribute) return;
+            if (el.getAttribute('data-module') === 'countdown') {
+                const hrs = 24;
+                const target = Date.now() + hrs * 3600000;
+                function tick() {
+                    const left = Math.max(0, target - Date.now());
+                    const s = Math.floor(left / 1000);
+                    const h = Math.floor(s / 3600);
+                    const m = Math.floor((s % 3600) / 60);
+                    const sec = s % 60;
+                    const eh = el.querySelector('[data-cd-h]');
+                    const em = el.querySelector('[data-cd-m]');
+                    const es = el.querySelector('[data-cd-s]');
+                    if (eh) eh.textContent = String(h).padStart(2, '0');
+                    if (em) em.textContent = String(m).padStart(2, '0');
+                    if (es) es.textContent = String(sec).padStart(2, '0');
+                    if (left > 0) requestAnimationFrame(tick);
+                }
+                tick();
             }
         });
     }
@@ -2285,8 +2457,9 @@ document.addEventListener('click',function(e){var w=e.target.closest('[data-vsl-
         // Fix color picker positioning + ensure swatches are clickable
         initColorPickerFix();
         fixColorSwatchClicks();
-        // YouTube click-to-play for VSL blocks
+        // Interactive block scripts (VSL, FAQ, Countdown)
         initVSLClickToPlay();
+        initCanvasInteractiveScripts();
     });
     </script>
 </body>
