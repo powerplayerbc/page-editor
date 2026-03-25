@@ -747,7 +747,16 @@
             body = body.replace(`<!-- __SCRIPT_${s.index}__ -->`, s.content);
         });
         body = body.replace(/<!-- __SCRIPT_\d+__ -->/g, '');
-        return `<!DOCTYPE html>\n<html lang="en">\n<head>${headContent}</head>\n<body>\n${body}\n</body>\n</html>`;
+
+        // Auto-inject VSL click-to-play script if the page has any VSL blocks
+        let vslScript = '';
+        if (body.includes('data-module="vsl"')) {
+            vslScript = `\n<script>
+document.addEventListener('click',function(e){var w=e.target.closest('[data-vsl-wrapper]');if(!w)return;var p=w.closest('[data-module="vsl"]');if(!p)return;var u=p.getAttribute('data-youtube');if(!u)return;var m=u.match(/(?:youtube\\.com\\/(?:watch\\?v=|embed\\/)|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/);if(!m)return;var f=document.createElement('iframe');f.src='https://www.youtube.com/embed/'+m[1]+'?autoplay=1&rel=0';f.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:none;';f.allow='accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture';f.allowFullscreen=true;w.innerHTML='';w.appendChild(f);});
+<\/script>`;
+        }
+
+        return `<!DOCTYPE html>\n<html lang="en">\n<head>${headContent}</head>\n<body>\n${body}${vslScript}\n</body>\n</html>`;
     }
 
     /* ── Initialize GrapesJS ── */
@@ -1495,22 +1504,82 @@
             </div>`,
         });
 
+        // Register VSL as a custom component type with YouTube trait
+        editor.Components.addType('vsl-player', {
+            isComponent: el => el && el.getAttribute && el.getAttribute('data-module') === 'vsl',
+            model: {
+                defaults: {
+                    tagName: 'div',
+                    attributes: { 'data-module': 'vsl', 'data-youtube': '' },
+                    traits: [
+                        {
+                            type: 'text',
+                            name: 'data-youtube',
+                            label: 'YouTube URL',
+                            placeholder: 'https://www.youtube.com/watch?v=...',
+                        },
+                    ],
+                },
+                init() {
+                    this.on('change:attributes:data-youtube', this.updateThumb);
+                },
+                updateThumb() {
+                    const url = this.getAttributes()['data-youtube'] || '';
+                    const vid = extractYouTubeId(url);
+                    const thumb = this.components().models.find(c => {
+                        const el = c.getEl();
+                        return el && el.querySelector && el.querySelector('[data-vsl-thumb]');
+                    });
+                    // Update thumbnail background if we can find the video ID
+                    if (vid && thumb) {
+                        const imgEl = thumb.getEl().querySelector('[data-vsl-thumb]');
+                        if (imgEl) imgEl.style.backgroundImage = 'url(https://img.youtube.com/vi/' + vid + '/maxresdefault.jpg)';
+                    }
+                },
+            },
+        });
+
         bm.add('vsl-section', {
             label: 'Video Sales Letter',
             category: 'Sales',
-            attributes: { title: 'Video embed + headline + CTA — the classic VSL layout' },
-            content: `<div style="max-width:720px;margin:2rem auto;padding:0 1rem;text-align:center;">
-                <h2 style="font-family:'Chakra Petch',system-ui;font-size:1.5rem;font-weight:700;margin-bottom:1.25rem;">Watch This Short Video to Learn How...</h2>
-                <div style="position:relative;padding-bottom:56.25%;background:#11131A;border:1px solid #2A2E3D;border-radius:0.75rem;overflow:hidden;margin-bottom:1.5rem;">
-                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-                        <div style="width:60px;height:60px;border-radius:50%;background:rgba(6,214,160,0.15);border:2px solid rgba(6,214,160,0.4);display:flex;align-items:center;justify-content:center;cursor:pointer;">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 4l10 6-10 6V4z" fill="#06D6A0"/></svg>
-                        </div>
-                    </div>
-                </div>
-                <p style="color:#8A95A9;font-size:1rem;margin-bottom:1.5rem;line-height:1.6;">Discover the exact system that helps businesses like yours achieve results.</p>
-                <button style="padding:0.875rem 2.5rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.5rem;font-weight:600;cursor:pointer;font-size:1rem;font-family:'Chakra Petch',system-ui;text-transform:uppercase;letter-spacing:0.04em;">Get Started Now</button>
-            </div>`,
+            attributes: { title: 'YouTube video + headline + CTA — set URL in Settings tab' },
+            content: {
+                type: 'vsl-player',
+                attributes: { 'data-module': 'vsl', 'data-youtube': '' },
+                style: { 'max-width': '720px', margin: '2rem auto', padding: '0 1rem', 'text-align': 'center' },
+                components: [
+                    {
+                        tagName: 'h2',
+                        content: 'Watch This Short Video to Learn How...',
+                        style: { 'font-family': "'Chakra Petch',system-ui", 'font-size': '1.5rem', 'font-weight': '700', 'margin-bottom': '1.25rem' },
+                    },
+                    {
+                        tagName: 'div',
+                        attributes: { 'data-vsl-wrapper': 'true' },
+                        style: { position: 'relative', 'padding-bottom': '56.25%', background: '#11131A', border: '1px solid #2A2E3D', 'border-radius': '0.75rem', overflow: 'hidden', 'margin-bottom': '1.5rem', cursor: 'pointer' },
+                        components: [{
+                            tagName: 'div',
+                            attributes: { 'data-vsl-thumb': 'true' },
+                            style: { position: 'absolute', inset: '0', display: 'flex', 'align-items': 'center', 'justify-content': 'center', 'background-size': 'cover', 'background-position': 'center' },
+                            components: [{
+                                tagName: 'div',
+                                style: { width: '68px', height: '68px', 'border-radius': '50%', background: 'rgba(6,214,160,0.2)', border: '2px solid rgba(6,214,160,0.5)', display: 'flex', 'align-items': 'center', 'justify-content': 'center', 'backdrop-filter': 'blur(4px)' },
+                                content: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 5l12 7-12 7V5z" fill="#06D6A0"/></svg>',
+                            }],
+                        }],
+                    },
+                    {
+                        tagName: 'p',
+                        content: 'Discover the exact system that helps businesses like yours achieve results.',
+                        style: { color: '#8A95A9', 'font-size': '1rem', 'margin-bottom': '1.5rem', 'line-height': '1.6' },
+                    },
+                    {
+                        tagName: 'button',
+                        content: 'Get Started Now',
+                        style: { padding: '0.875rem 2.5rem', background: 'rgba(6,214,160,0.15)', color: '#06D6A0', border: '1px solid rgba(6,214,160,0.3)', 'border-radius': '0.5rem', 'font-weight': '600', cursor: 'pointer', 'font-size': '1rem', 'font-family': "'Chakra Petch',system-ui", 'text-transform': 'uppercase', 'letter-spacing': '0.04em' },
+                    },
+                ],
+            },
         });
 
         bm.add('social-proof-bar', {
@@ -1775,6 +1844,65 @@
             if (!block) return;
             hideTimer = setTimeout(() => tip.classList.remove('show'), 100);
         }, true);
+    }
+
+    /* ── YouTube Helpers ── */
+
+    function extractYouTubeId(url) {
+        if (!url) return null;
+        // Handle: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
+        const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        return m ? m[1] : null;
+    }
+
+    function initVSLClickToPlay() {
+        // When a VSL block is saved and viewed on the live page, this script
+        // handles the click-to-play. In the editor, we inject it into the canvas.
+        const script = `
+            document.addEventListener('click', function(e) {
+                var wrapper = e.target.closest('[data-vsl-wrapper]');
+                if (!wrapper) return;
+                var parent = wrapper.closest('[data-module="vsl"]');
+                if (!parent) return;
+                var url = parent.getAttribute('data-youtube');
+                if (!url) return;
+                var m = url.match(/(?:youtube\\.com\\/(?:watch\\?v=|embed\\/)|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/);
+                if (!m) return;
+                var vid = m[1];
+                var iframe = document.createElement('iframe');
+                iframe.src = 'https://www.youtube.com/embed/' + vid + '?autoplay=1&rel=0';
+                iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;';
+                iframe.allow = 'accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture';
+                iframe.allowFullscreen = true;
+                wrapper.innerHTML = '';
+                wrapper.appendChild(iframe);
+            });
+        `;
+
+        // Inject into the GrapesJS canvas so click-to-play works in preview
+        editor.on('canvas:frame:load', ({ window: frameWin }) => {
+            if (!frameWin) return;
+            const doc = frameWin.document;
+            const s = doc.createElement('script');
+            s.textContent = script;
+            s.setAttribute('data-ed', '1');
+            doc.body.appendChild(s);
+        });
+
+        // Also update thumbnail when YouTube URL trait changes
+        editor.on('component:update', (component) => {
+            const attrs = component.getAttributes();
+            if (attrs['data-module'] !== 'vsl') return;
+            const url = attrs['data-youtube'];
+            const vid = extractYouTubeId(url);
+            if (!vid) return;
+            const el = component.getEl();
+            if (!el) return;
+            const thumb = el.querySelector('[data-vsl-thumb]');
+            if (thumb) {
+                thumb.style.backgroundImage = `url(https://img.youtube.com/vi/${vid}/maxresdefault.jpg)`;
+            }
+        });
     }
 
     /* ── Color Swatch Click Fix ── */
@@ -2157,6 +2285,8 @@
         // Fix color picker positioning + ensure swatches are clickable
         initColorPickerFix();
         fixColorSwatchClicks();
+        // YouTube click-to-play for VSL blocks
+        initVSLClickToPlay();
     });
     </script>
 </body>
