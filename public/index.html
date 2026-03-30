@@ -777,6 +777,490 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
 <\/script>`;
         }
 
+        // ── Funnel session ID management (always inject) ──
+        injectedScripts += `\n<script>
+(function(){
+  var params=new URLSearchParams(location.search);
+  var urlSid=params.get('sid');
+  if(urlSid) localStorage.setItem('funnel_session_id',urlSid);
+  if(!localStorage.getItem('funnel_session_id')){
+    localStorage.setItem('funnel_session_id',crypto.randomUUID());
+  }
+  window.__funnelSessionId=localStorage.getItem('funnel_session_id');
+  document.addEventListener('click',function(e){
+    var a=e.target.closest('a[href]');
+    if(!a)return;
+    var href=a.getAttribute('href');
+    if(!href||href.startsWith('#')||href.startsWith('mailto:')||href.startsWith('tel:')||href.startsWith('javascript:'))return;
+    try{
+      var url=new URL(href,location.origin);
+      url.searchParams.set('sid',window.__funnelSessionId);
+      a.href=url.toString();
+    }catch(ex){}
+  });
+})();
+<\/script>`;
+
+        // ── Tracking pixel (always inject) ──
+        injectedScripts += `\n<script>
+(function(){
+  var TRACK_URL='https://n8n.carltonaiservices.com/webhook/page-track';
+  var pageId=document.querySelector('meta[name="page-id"]')?.content||'';
+  var sid=window.__funnelSessionId||'';
+  function track(event,extra){
+    var data=Object.assign({event:event,page_id:pageId,page_url:location.href,funnel_session_id:sid,timestamp:new Date().toISOString()},extra||{});
+    navigator.sendBeacon(TRACK_URL,new Blob([JSON.stringify(data)],{type:'text/plain'}));
+  }
+  track('page_view',{
+    referrer:document.referrer,
+    utm_source:new URLSearchParams(location.search).get('utm_source'),
+    utm_medium:new URLSearchParams(location.search).get('utm_medium'),
+    utm_campaign:new URLSearchParams(location.search).get('utm_campaign'),
+    user_agent:navigator.userAgent,
+    screen_width:screen.width
+  });
+  var maxScroll=0,firedMs=new Set(),milestones=[25,50,75,100],pageStart=Date.now();
+  window.addEventListener('scroll',function(){
+    var pct=Math.round((window.scrollY+window.innerHeight)/document.body.scrollHeight*100);
+    if(pct>maxScroll)maxScroll=pct;
+    milestones.forEach(function(m){
+      if(pct>=m&&!firedMs.has(m)){
+        firedMs.add(m);
+        track('scroll_depth',{depth_percent:m,max_depth_percent:maxScroll,time_on_page_seconds:Math.round((Date.now()-pageStart)/1000)});
+      }
+    });
+  });
+  document.addEventListener('click',function(e){
+    var el=e.target.closest('button,a,[data-module]');
+    if(!el)return;
+    track('element_click',{
+      element_type:el.tagName.toLowerCase(),
+      element_text:(el.textContent||'').trim().slice(0,100),
+      element_data_module:el.closest('[data-module]')?.dataset.module||''
+    });
+  });
+  window.__track=track;
+})();
+<\/script>`;
+
+        // ── Form submission handler (conditional) ──
+        if (body.includes('data-module="form"')) {
+            injectedScripts += `\n<script>
+(function(){
+  var sid=window.__funnelSessionId||'';
+  var brandId='carlton';
+
+  function postJSON(url,payload){
+    return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json()});
+  }
+
+  function getFormData(form){
+    var d={};
+    form.querySelectorAll('input,textarea,select').forEach(function(f){
+      if(f.name){
+        if(f.type==='checkbox'){d[f.name]=f.checked}
+        else{d[f.name]=f.value}
+      }
+    });
+    return d;
+  }
+
+  function splitName(fullName){
+    var parts=(fullName||'').trim().split(/\\s+/);
+    return {first_name:parts[0]||'',last_name:parts.slice(1).join(' ')||''};
+  }
+
+  function setLoading(btn,on){
+    if(!btn)return;
+    if(on){btn._origText=btn.textContent;btn.textContent='Processing...';btn.disabled=true;}
+    else{btn.textContent=btn._origText||'Submit';btn.disabled=false;}
+  }
+
+  function showError(container,msg){
+    var el=container.querySelector('.form-error');
+    if(!el){el=document.createElement('div');el.className='form-error';el.style.cssText='color:#FF6B6B;font-size:0.8rem;padding:0.5rem 0;text-align:center;';container.appendChild(el);}
+    el.textContent=msg;
+  }
+
+  function handleRedirect(redirectUrl,responseUrl){
+    var url=redirectUrl||responseUrl;
+    if(url){
+      try{var u=new URL(url,location.origin);u.searchParams.set('sid',sid);window.location.href=u.toString();}
+      catch(e){window.location.href=url;}
+    }
+  }
+
+  // Lead & checkout forms — intercept <form> submit
+  document.addEventListener('submit',function(e){
+    var form=e.target;
+    var wrapper=form.closest('[data-module="form"]');
+    if(!wrapper)return;
+    e.preventDefault();
+    var type=wrapper.getAttribute('data-type')||'lead';
+    var endpoint=wrapper.getAttribute('data-endpoint')||'';
+    if(!endpoint)return;
+    var redirect=wrapper.getAttribute('data-redirect')||'';
+    var sequence=wrapper.getAttribute('data-sequence')||'';
+    var btn=form.querySelector('button[type="submit"]');
+
+    if(type==='lead'){
+      setLoading(btn,true);
+      var fd=getFormData(form);
+      var firstName=fd.first_name||'';
+      var lastName=fd.last_name||'';
+      if(!firstName&&fd.full_name){var s=splitName(fd.full_name);firstName=s.first_name;lastName=s.last_name;}
+      var payload={data_type:'lead',email:fd.email||'',first_name:firstName,last_name:lastName,phone:fd.phone||'',page_url:location.href,funnel_session_id:sid,brand_id:brandId};
+      if(sequence)payload.data_sequence=sequence;
+      if(redirect)payload.redirect_url=redirect;
+      postJSON(endpoint,payload).then(function(res){
+        if(res.success){
+          if(window.__track)window.__track('form_submit',{});
+          handleRedirect(redirect,res.redirect_url);
+        }else{showError(wrapper,res.error||'Submission failed');setLoading(btn,false);}
+      }).catch(function(){showError(wrapper,'Network error. Please try again.');setLoading(btn,false);});
+    }
+
+    if(type==='checkout'){
+      setLoading(btn,true);
+      var fd=getFormData(form);
+      var stripeKey=wrapper.getAttribute('data-stripe-key')||'';
+      var priceCents=parseInt(wrapper.getAttribute('data-price'))||0;
+      var offerId=wrapper.getAttribute('data-product-id')||'';
+      if(!stripeKey||typeof Stripe==='undefined'){showError(wrapper,'Payment not configured.');setLoading(btn,false);return;}
+      var stripe=Stripe(stripeKey);
+      var cardEl=wrapper.querySelector('#card-element');
+      if(!cardEl._stripeMounted){
+        var elements=stripe.elements();
+        var card=elements.create('card',{style:{base:{color:'#E8ECF1',fontSize:'14px','::placeholder':{color:'#525E73'}}}});
+        card.mount(cardEl);
+        cardEl._stripeMounted=true;
+        cardEl._stripeCard=card;
+        cardEl._stripe=stripe;
+      }
+      var s=cardEl._stripe,c=cardEl._stripeCard;
+      s.createPaymentMethod({type:'card',card:c,billing_details:{name:(fd.first_name||'')+' '+(fd.last_name||''),email:fd.email||''}}).then(function(result){
+        if(result.error){
+          var errEl=wrapper.querySelector('#card-errors');
+          if(errEl)errEl.textContent=result.error.message;
+          setLoading(btn,false);
+          return;
+        }
+        var bumpEl=wrapper.closest('body')?.querySelector('[type="checkbox"][style*="accent-color:#FFD93D"]');
+        var bumpChecked=bumpEl?bumpEl.checked:false;
+        var payload={data_type:'checkout',email:fd.email||'',first_name:fd.first_name||'',last_name:fd.last_name||'',phone:fd.phone||'',payment_method_id:result.paymentMethod.id,amount_cents:priceCents,offer_id:offerId,funnel_session_id:sid,brand_id:brandId};
+        if(bumpChecked)payload.order_bump=true;
+        if(fd.ship_address){payload.ship_address=fd.ship_address;payload.ship_city=fd.ship_city||'';payload.ship_state=fd.ship_state||'';payload.ship_zip=fd.ship_zip||'';}
+        if(fd.billing_same!==undefined)payload.billing_same=fd.billing_same;
+        if(!fd.billing_same&&fd.bill_address){payload.bill_address=fd.bill_address;payload.bill_city=fd.bill_city||'';payload.bill_state=fd.bill_state||'';payload.bill_zip=fd.bill_zip||'';}
+        if(sequence)payload.data_sequence=sequence;
+        if(redirect)payload.redirect_url=redirect;
+        postJSON(endpoint,payload).then(function(res){
+          if(res.success){
+            if(window.__track)window.__track('form_submit',{});
+            handleRedirect(redirect,res.redirect_url);
+          }else{
+            var errEl=wrapper.querySelector('#card-errors');
+            if(errEl)errEl.textContent=res.error||'Payment failed';
+            showError(wrapper,res.error||'Payment failed');
+            setLoading(btn,false);
+          }
+        }).catch(function(){showError(wrapper,'Network error. Please try again.');setLoading(btn,false);});
+      });
+    }
+  });
+
+  // Mount Stripe card element immediately on checkout pages
+  document.querySelectorAll('[data-module="form"][data-type="checkout"]').forEach(function(wrapper){
+    var stripeKey=wrapper.getAttribute('data-stripe-key')||'';
+    var cardEl=wrapper.querySelector('#card-element');
+    if(!stripeKey||!cardEl||typeof Stripe==='undefined')return;
+    var stripe=Stripe(stripeKey);
+    var elements=stripe.elements();
+    var card=elements.create('card',{style:{base:{color:'#E8ECF1',fontSize:'14px','::placeholder':{color:'#525E73'}}}});
+    card.mount(cardEl);
+    cardEl._stripeMounted=true;
+    cardEl._stripeCard=card;
+    cardEl._stripe=stripe;
+    card.on('change',function(ev){
+      var errEl=wrapper.querySelector('#card-errors');
+      if(errEl)errEl.textContent=ev.error?ev.error.message:'';
+    });
+  });
+
+  // Upsell/downsell — button click handlers
+  document.querySelectorAll('[data-module="form"][data-type="upsell"],[data-module="form"][data-type="downsell"]').forEach(function(wrapper){
+    var buttons=wrapper.querySelectorAll('button');
+    var endpoint=wrapper.getAttribute('data-endpoint')||'';
+    var type=wrapper.getAttribute('data-type')||'upsell';
+    var redirect=wrapper.getAttribute('data-redirect')||'';
+    var priceCents=parseInt(wrapper.getAttribute('data-price'))||0;
+    var offerId=wrapper.getAttribute('data-product-id')||'';
+    if(!endpoint||buttons.length<2)return;
+    var acceptBtn=buttons[0],declineBtn=buttons[1];
+
+    acceptBtn.addEventListener('click',function(e){
+      e.preventDefault();
+      setLoading(acceptBtn,true);
+      postJSON(endpoint,{data_type:type,action:'accept',amount_cents:priceCents,offer_id:offerId,funnel_session_id:sid,redirect_url:redirect}).then(function(res){
+        if(res.success){handleRedirect(redirect,res.redirect_url);}
+        else{showError(wrapper,res.error||'Failed');setLoading(acceptBtn,false);}
+      }).catch(function(){showError(wrapper,'Network error.');setLoading(acceptBtn,false);});
+    });
+
+    declineBtn.addEventListener('click',function(e){
+      e.preventDefault();
+      postJSON(endpoint,{data_type:type,action:'decline',funnel_session_id:sid,redirect_url:redirect}).then(function(res){
+        handleRedirect(redirect,res.redirect_url);
+      }).catch(function(){handleRedirect(redirect);});
+    });
+  });
+})();
+<\/script>`;
+        }
+
+        // ── Stripe.js CDN (only for checkout pages) ──
+        if (body.includes('data-type="checkout"')) {
+            headContent += '\n<script src="https://js.stripe.com/v3/"><\/script>';
+        }
+
+        // ── Account management handler (conditional) ──
+        if (body.includes('data-module="account"')) {
+            injectedScripts += `\n<script>
+(function(){
+  var token=new URLSearchParams(window.location.search).get('token')||'';
+  var accountState={subscriptions:[],customer:null};
+
+  function postJSON(url,payload){
+    return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json()});
+  }
+
+  function formatDate(iso){
+    if(!iso)return '—';
+    var d=new Date(iso);
+    return d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  }
+
+  function formatPrice(cents,interval){
+    var amt=(cents/100).toFixed(2).replace(/\\.00$/,'');
+    return '$'+amt+(interval?'/'+interval:'');
+  }
+
+  function getEndpoint(){
+    var el=document.querySelector('[data-module="account"][data-endpoint]');
+    return el?el.getAttribute('data-endpoint'):'';
+  }
+
+  function updateStatusUI(sub){
+    if(!sub)return;
+    // Status badge
+    var badge=document.querySelector('[data-account="status-badge"]');
+    if(badge){
+      var isPaused=sub.pause_collection&&sub.pause_collection.behavior;
+      var isCanceling=sub.cancel_at_period_end;
+      if(isPaused){badge.textContent='PAUSED';badge.style.background='rgba(255,217,61,0.12)';badge.style.color='#FFD93D';}
+      else if(isCanceling){badge.textContent='CANCELING';badge.style.background='rgba(255,107,107,0.12)';badge.style.color='#FF6B6B';}
+      else if(sub.status==='canceled'){badge.textContent='CANCELED';badge.style.background='rgba(255,107,107,0.12)';badge.style.color='#FF6B6B';}
+      else{badge.textContent='ACTIVE';badge.style.background='rgba(6,214,160,0.12)';badge.style.color='#06D6A0';}
+    }
+    // Plan details
+    var planName=document.querySelector('[data-account="plan-name"]');
+    if(planName)planName.textContent=sub.plan_name||'Subscription';
+    var planPrice=document.querySelector('[data-account="plan-price"]');
+    if(planPrice)planPrice.textContent=formatPrice(sub.price_cents||0,sub.interval);
+    var nextBilling=document.querySelector('[data-account="next-billing"]');
+    if(nextBilling)nextBilling.textContent=formatDate(sub.current_period_end);
+    var memberSince=document.querySelector('[data-account="member-since"]');
+    if(memberSince)memberSince.textContent=formatDate(sub.created_at);
+    // Status message
+    var statusMsg=document.querySelector('[data-account="status-message"]');
+    if(statusMsg){
+      var isPaused=sub.pause_collection&&sub.pause_collection.behavior;
+      var isCanceling=sub.cancel_at_period_end;
+      if(isPaused)statusMsg.textContent='Your billing is paused. You still have full access. Resume anytime.';
+      else if(isCanceling)statusMsg.textContent='Your subscription will end on '+formatDate(sub.current_period_end)+'. You have full access until then.';
+      else if(sub.status==='canceled')statusMsg.textContent='Your subscription has ended.';
+      else statusMsg.textContent='Your subscription is active and billing normally.';
+    }
+    // Pause/Resume button visibility
+    var pauseBtn=document.querySelector('[data-account-action="pause"]');
+    var resumeBtn=document.querySelector('[data-account-action="resume"]');
+    var isPaused=sub.pause_collection&&sub.pause_collection.behavior;
+    if(pauseBtn)pauseBtn.style.display=isPaused?'none':'inline-block';
+    if(resumeBtn)resumeBtn.style.display=isPaused?'inline-block':'none';
+    // Cancel section visibility
+    var cancelSection=document.querySelector('[data-account="cancel-section"]');
+    var cancelDone=document.querySelector('[data-account="cancel-done"]');
+    var cancelConfirm=document.querySelector('[data-account="cancel-confirm"]');
+    if(sub.cancel_at_period_end){
+      if(cancelSection)cancelSection.style.display='none';
+      if(cancelConfirm)cancelConfirm.style.display='none';
+      if(cancelDone){cancelDone.style.display='block';var dateEl=cancelDone.querySelector('[data-account="access-until-done"]');if(dateEl)dateEl.textContent=formatDate(sub.current_period_end);}
+    }else{
+      if(cancelSection)cancelSection.style.display='block';
+      if(cancelDone)cancelDone.style.display='none';
+      if(cancelConfirm)cancelConfirm.style.display='none';
+    }
+    // Access-until in confirm modal
+    var accessUntil=document.querySelector('[data-account="access-until"]');
+    if(accessUntil)accessUntil.textContent=formatDate(sub.current_period_end);
+    // Reactivation CTA visibility
+    var reactivationBlock=document.querySelector('[data-module="account"][data-type="reactivation"]');
+    if(reactivationBlock){
+      reactivationBlock.style.display=(isPaused||sub.cancel_at_period_end)?'block':'none';
+    }
+    // Pause billing block visibility — hide if canceled
+    var pauseBlock=document.querySelector('[data-module="account"][data-type="pause-billing"]');
+    if(pauseBlock){
+      pauseBlock.style.display=(sub.status==='canceled')?'none':'block';
+    }
+    // Cancel block visibility — hide if canceled
+    var cancelBlock=document.querySelector('[data-module="account"][data-type="cancel-subscription"]');
+    if(cancelBlock){
+      cancelBlock.style.display=(sub.status==='canceled'||sub.cancel_at_period_end)?'none':'block';
+    }
+  }
+
+  function setButtonLoading(btn,on){
+    if(!btn)return;
+    if(on){btn._orig=btn.textContent;btn.textContent='Processing...';btn.disabled=true;btn.style.opacity='0.6';}
+    else{btn.textContent=btn._orig||'';btn.disabled=false;btn.style.opacity='1';}
+  }
+
+  // Load subscription data
+  function loadSubscriptions(){
+    var endpoint=getEndpoint();
+    if(!endpoint||!token){
+      var planName=document.querySelector('[data-account="plan-name"]');
+      if(planName)planName.textContent='Unable to load — invalid or expired link.';
+      return;
+    }
+    postJSON(endpoint,{operation:'get_customer_subscriptions',token:token,brand_id:'carlton'}).then(function(res){
+      if(res.success&&res.subscriptions&&res.subscriptions.length>0){
+        accountState.subscriptions=res.subscriptions;
+        accountState.customer=res.customer||null;
+        updateStatusUI(res.subscriptions[0]);
+      }else{
+        var planName=document.querySelector('[data-account="plan-name"]');
+        if(planName)planName.textContent=res.error||'No active subscription found.';
+      }
+    }).catch(function(){
+      var planName=document.querySelector('[data-account="plan-name"]');
+      if(planName)planName.textContent='Connection error. Please try again.';
+    });
+  }
+
+  // Action handlers
+  document.addEventListener('click',function(e){
+    var btn=e.target.closest('[data-account-action]');
+    if(!btn)return;
+    var action=btn.getAttribute('data-account-action');
+    var endpoint=getEndpoint();
+    var sub=accountState.subscriptions[0];
+    if(!endpoint||!token)return;
+
+    if(action==='pause'&&sub){
+      setButtonLoading(btn,true);
+      postJSON(endpoint,{operation:'pause_subscription',subscription_id:sub.subscription_id,token:token,brand_id:'carlton'}).then(function(res){
+        if(res.success){sub.pause_collection={behavior:'void'};updateStatusUI(sub);}
+        else{alert(res.error||'Could not pause. Please try again.');}
+        setButtonLoading(btn,false);
+      }).catch(function(){alert('Connection error.');setButtonLoading(btn,false);});
+    }
+
+    if(action==='resume'&&sub){
+      setButtonLoading(btn,true);
+      postJSON(endpoint,{operation:'resume_subscription',subscription_id:sub.subscription_id,token:token,brand_id:'carlton'}).then(function(res){
+        if(res.success){sub.pause_collection=null;updateStatusUI(sub);}
+        else{alert(res.error||'Could not resume. Please try again.');}
+        setButtonLoading(btn,false);
+      }).catch(function(){alert('Connection error.');setButtonLoading(btn,false);});
+    }
+
+    if(action==='cancel'){
+      var confirmEl=document.querySelector('[data-account="cancel-confirm"]');
+      if(confirmEl)confirmEl.style.display='block';
+    }
+
+    if(action==='cancel-back'){
+      var confirmEl=document.querySelector('[data-account="cancel-confirm"]');
+      if(confirmEl)confirmEl.style.display='none';
+    }
+
+    if(action==='confirm-cancel'&&sub){
+      setButtonLoading(btn,true);
+      postJSON(endpoint,{operation:'cancel_subscription',subscription_id:sub.subscription_id,token:token,brand_id:'carlton'}).then(function(res){
+        if(res.success){sub.cancel_at_period_end=true;updateStatusUI(sub);}
+        else{alert(res.error||'Could not cancel. Please try again.');}
+        setButtonLoading(btn,false);
+      }).catch(function(){alert('Connection error.');setButtonLoading(btn,false);});
+    }
+
+    if(action==='reactivate'&&sub){
+      setButtonLoading(btn,true);
+      var op=sub.pause_collection&&sub.pause_collection.behavior?'resume_subscription':'reactivate_subscription';
+      postJSON(endpoint,{operation:op,subscription_id:sub.subscription_id,token:token,brand_id:'carlton'}).then(function(res){
+        if(res.success){sub.cancel_at_period_end=false;sub.pause_collection=null;updateStatusUI(sub);}
+        else{alert(res.error||'Could not reactivate. Please try again.');}
+        setButtonLoading(btn,false);
+      }).catch(function(){alert('Connection error.');setButtonLoading(btn,false);});
+    }
+
+    if(action==='update-payment'){
+      setButtonLoading(btn,true);
+      var returnUrl=window.location.href;
+      postJSON(endpoint,{operation:'create_portal_session',customer_id:accountState.customer?.id||'',return_url:returnUrl,token:token,brand_id:'carlton'}).then(function(res){
+        if(res.success&&res.portal_url){window.location.href=res.portal_url;}
+        else{alert(res.error||'Could not open payment portal.');setButtonLoading(btn,false);}
+      }).catch(function(){alert('Connection error.');setButtonLoading(btn,false);});
+    }
+  });
+
+  // Init
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',loadSubscriptions);}
+  else{loadSubscriptions();}
+})();
+<\/script>`;
+        }
+
+        // ── Page-ID meta tag ──
+        if (!headContent.includes('meta name="page-id"')) {
+            var pageSlug = (typeof currentPage === 'string' ? currentPage : 'page').replace(/\.html$/, '').replace(/[^a-zA-Z0-9]/g, '_');
+            headContent += '\n<meta name="page-id" content="PAGE_' + pageSlug + '">';
+        }
+
+        // ── Confirmation page data loader (conditional) ──
+        if (body.includes('data-module="confirmation"')) {
+            headContent += '\n<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>';
+            injectedScripts += `\n<script>
+(function(){
+  var sid=window.__funnelSessionId||'';
+  if(!sid)return;
+  var sb=window.supabase.createClient('https://yrwrswyjawmgtxrgbnim.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlyd3Jzd3lqYXdtZ3R4cmdibmltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYzODY2MzMsImV4cCI6MjA1MTk2MjYzM30.CjKVHdkFnxFDyZSN4_5nTeX6K7SEu-DjvBH2lzfVrX8');
+  sb.from('offer_purchases').select('purchase_id,offer_id,amount_cents,payment_status,line_items,order_bumps,upsells').eq('funnel_session_id',sid).then(function(res){
+    if(!res.data||!res.data.length)return;
+    var orders=res.data;
+    var orderIdEl=document.querySelector('[data-confirmation="order-id"]');
+    if(orderIdEl)orderIdEl.textContent='Order ID: '+orders[0].purchase_id;
+    var itemsEl=document.querySelector('[data-confirmation="line-items"]');
+    if(itemsEl){
+      var html='';
+      var total=0;
+      orders.forEach(function(o){
+        html+='<div style="display:flex;justify-content:space-between;font-size:0.8rem;"><span style="color:#E8ECF1;">'+o.offer_id+'</span><span style="color:#E8ECF1;">$'+(o.amount_cents/100).toFixed(2)+'</span></div>';
+        total+=o.amount_cents;
+      });
+      itemsEl.innerHTML=html;
+    }
+    var totalEl=document.querySelector('[data-confirmation="total"]');
+    if(totalEl){
+      var total=orders.reduce(function(s,o){return s+o.amount_cents},0);
+      totalEl.textContent='$'+(total/100).toFixed(2);
+    }
+  });
+})();
+<\/script>`;
+        }
+
         return `<!DOCTYPE html>\n<html lang="en">\n<head>${headContent}</head>\n<body>\n${body}${injectedScripts}\n</body>\n</html>`;
     }
 
@@ -1289,13 +1773,13 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
             label: 'Lead Form',
             category: 'Data Modules',
             attributes: { title: 'Contact/lead capture form — sends to webhook endpoint' },
-            content: `<div data-module="form" data-endpoint="" style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:2rem;">
+            content: `<div data-module="form" data-endpoint="https://n8n.carltonaiservices.com/webhook/page-form" data-type="lead" style="background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:2rem;">
                 <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.25rem;font-weight:700;margin-bottom:0.5rem;">Get in Touch</h3>
                 <p style="font-size:0.875rem;color:#8A95A9;margin-bottom:1.5rem;">Fill out the form below.</p>
                 <form style="display:flex;flex-direction:column;gap:1rem;">
-                    <input type="text" placeholder="Full Name" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;">
-                    <input type="email" placeholder="Email" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;">
-                    <textarea placeholder="Message" rows="3" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;resize:vertical;"></textarea>
+                    <input type="text" name="full_name" placeholder="Full Name" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;">
+                    <input type="email" name="email" placeholder="Email" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;">
+                    <textarea name="message" placeholder="Message" rows="3" style="padding:0.75rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;resize:vertical;"></textarea>
                     <button type="submit" style="padding:0.75rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.5rem;font-weight:600;cursor:pointer;font-size:0.875rem;">Submit</button>
                 </form>
             </div>`,
@@ -1363,12 +1847,12 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
             label: 'Email Signup',
             category: 'Lead Capture',
             attributes: { title: 'Simple name + email capture — sends to webhook' },
-            content: `<div data-module="form" data-endpoint="" style="max-width:480px;margin:2rem auto;padding:2rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;text-align:center;">
+            content: `<div data-module="form" data-endpoint="https://n8n.carltonaiservices.com/webhook/page-form" data-type="lead" style="max-width:480px;margin:2rem auto;padding:2rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;text-align:center;">
                 <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.25rem;font-weight:700;margin-bottom:0.5rem;">Stay in the Loop</h3>
                 <p style="color:#8A95A9;font-size:0.875rem;margin-bottom:1.5rem;">Get updates delivered straight to your inbox.</p>
                 <form style="display:flex;flex-direction:column;gap:0.75rem;" onsubmit="return false;">
-                    <input type="text" placeholder="First Name" style="padding:0.7rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;width:100%;box-sizing:border-box;">
-                    <input type="email" placeholder="Email Address" style="padding:0.7rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;width:100%;box-sizing:border-box;">
+                    <input type="text" name="first_name" placeholder="First Name" style="padding:0.7rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;width:100%;box-sizing:border-box;">
+                    <input type="email" name="email" placeholder="Email Address" style="padding:0.7rem 1rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.5rem;color:#E8ECF1;font-size:0.875rem;outline:none;width:100%;box-sizing:border-box;">
                     <button type="submit" style="padding:0.75rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.5rem;font-weight:600;cursor:pointer;font-size:0.875rem;font-family:'Chakra Petch',system-ui;text-transform:uppercase;letter-spacing:0.04em;">Subscribe</button>
                 </form>
                 <p style="color:#525E73;font-size:0.65rem;margin-top:0.75rem;">No spam. Unsubscribe anytime.</p>
@@ -1379,7 +1863,7 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
             label: 'Lead Magnet Box',
             category: 'Lead Capture',
             attributes: { title: 'Freebie offer — image + bullet points + email capture form' },
-            content: `<div data-module="form" data-endpoint="" style="max-width:720px;margin:2rem auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;padding:2rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;align-items:center;">
+            content: `<div data-module="form" data-endpoint="https://n8n.carltonaiservices.com/webhook/page-form" data-type="lead" style="max-width:720px;margin:2rem auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;padding:2rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;align-items:center;">
                 <div>
                     <div style="background:rgba(6,214,160,0.08);border:1px solid rgba(6,214,160,0.2);border-radius:0.5rem;padding:2rem;text-align:center;min-height:180px;display:flex;align-items:center;justify-content:center;">
                         <span style="color:#06D6A0;font-family:'Chakra Petch',system-ui;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;">Lead Magnet Image</span>
@@ -1394,7 +1878,7 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
                         <li style="color:#8A95A9;font-size:0.8rem;display:flex;align-items:center;gap:0.5rem;"><span style="color:#06D6A0;">&#10003;</span> Benefit number three</li>
                     </ul>
                     <form style="display:flex;flex-direction:column;gap:0.6rem;" onsubmit="return false;">
-                        <input type="email" placeholder="Your email address" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                        <input type="email" name="email" placeholder="Your email address" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
                         <button type="submit" style="padding:0.65rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.8rem;">Get Free Access</button>
                     </form>
                 </div>
@@ -1405,7 +1889,7 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
             label: 'Content Upgrade',
             category: 'Lead Capture',
             attributes: { title: 'Inline blog callout — "Want the full checklist? Enter your email"' },
-            content: `<div data-module="form" data-endpoint="" style="max-width:600px;margin:2rem auto;padding:1.25rem 1.5rem;background:rgba(6,214,160,0.04);border:1px solid rgba(6,214,160,0.15);border-left:3px solid #06D6A0;border-radius:0.5rem;">
+            content: `<div data-module="form" data-endpoint="https://n8n.carltonaiservices.com/webhook/page-form" data-type="lead" style="max-width:600px;margin:2rem auto;padding:1.25rem 1.5rem;background:rgba(6,214,160,0.04);border:1px solid rgba(6,214,160,0.15);border-left:3px solid #06D6A0;border-radius:0.5rem;">
                 <div style="display:flex;align-items:flex-start;gap:0.75rem;margin-bottom:1rem;">
                     <span style="font-size:1.25rem;">&#128230;</span>
                     <div>
@@ -1414,7 +1898,7 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
                     </div>
                 </div>
                 <form style="display:flex;gap:0.5rem;flex-wrap:wrap;" onsubmit="return false;">
-                    <input type="email" placeholder="Enter your email" style="flex:1;min-width:200px;padding:0.6rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;box-sizing:border-box;">
+                    <input type="email" name="email" placeholder="Enter your email" style="flex:1;min-width:200px;padding:0.6rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;box-sizing:border-box;">
                     <button type="submit" style="padding:0.6rem 1.25rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.8rem;white-space:nowrap;">Send It</button>
                 </form>
             </div>`,
@@ -1424,7 +1908,7 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
             label: 'Webinar Registration',
             category: 'Lead Capture',
             attributes: { title: 'Event/webinar signup with date, speaker, and countdown' },
-            content: `<div data-module="form" data-endpoint="" style="max-width:600px;margin:2rem auto;padding:2rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;text-align:center;">
+            content: `<div data-module="form" data-endpoint="https://n8n.carltonaiservices.com/webhook/page-form" data-type="lead" style="max-width:600px;margin:2rem auto;padding:2rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;text-align:center;">
                 <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:#4CC9F0;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;">Free Live Training</div>
                 <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.5rem;font-weight:700;margin-bottom:0.5rem;">Webinar Title Goes Here</h3>
                 <p style="color:#8A95A9;font-size:0.875rem;margin-bottom:1.25rem;">Learn the exact strategy that generated $X in Y days.</p>
@@ -1434,8 +1918,8 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
                     <div style="background:rgba(76,201,240,0.08);border:1px solid rgba(76,201,240,0.2);border-radius:0.375rem;padding:0.5rem 1rem;text-align:center;"><div style="font-family:'Chakra Petch',system-ui;font-weight:700;font-size:1.25rem;color:#4CC9F0;">60</div><div style="font-size:0.7rem;color:#8A95A9;">Minutes</div></div>
                 </div>
                 <form style="max-width:360px;margin:0 auto;display:flex;flex-direction:column;gap:0.6rem;" onsubmit="return false;">
-                    <input type="text" placeholder="Your Name" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
-                    <input type="email" placeholder="Your Email" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <input type="text" name="full_name" placeholder="Your Name" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <input type="email" name="email" placeholder="Your Email" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
                     <button type="submit" style="padding:0.75rem;background:rgba(76,201,240,0.15);color:#4CC9F0;border:1px solid rgba(76,201,240,0.3);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.875rem;font-family:'Chakra Petch',system-ui;text-transform:uppercase;">Reserve My Seat</button>
                 </form>
                 <p style="color:#525E73;font-size:0.65rem;margin-top:0.75rem;">Limited spots available. A replay will be sent if you can't make it live.</p>
@@ -1598,6 +2082,90 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
             },
         });
 
+        // Register Form as a custom component type with backend integration traits
+        editor.Components.addType('form-block', {
+            isComponent: el => el && el.getAttribute && el.getAttribute('data-module') === 'form',
+            model: {
+                defaults: {
+                    tagName: 'div',
+                    attributes: {
+                        'data-module': 'form',
+                        'data-endpoint': 'https://n8n.carltonaiservices.com/webhook/page-form',
+                        'data-type': 'lead',
+                        'data-sequence': '',
+                        'data-product-id': '',
+                        'data-price': '',
+                        'data-funnel-name': '',
+                        'data-step': '',
+                        'data-redirect': '',
+                        'data-stripe-key': '',
+                    },
+                    traits: [
+                        {
+                            type: 'text',
+                            name: 'data-endpoint',
+                            label: 'Webhook Endpoint',
+                            placeholder: 'https://n8n.carltonaiservices.com/webhook/page-form',
+                        },
+                        {
+                            type: 'select',
+                            name: 'data-type',
+                            label: 'Form Type',
+                            options: [
+                                { id: 'lead', name: 'Lead Capture' },
+                                { id: 'checkout', name: 'Checkout' },
+                                { id: 'upsell', name: 'Upsell' },
+                                { id: 'downsell', name: 'Downsell' },
+                            ],
+                        },
+                        {
+                            type: 'text',
+                            name: 'data-sequence',
+                            label: 'Email Sequence ID',
+                            placeholder: 'seq_lead_magnet_nurture',
+                        },
+                        {
+                            type: 'text',
+                            name: 'data-product-id',
+                            label: 'Offer / Product ID',
+                            placeholder: 'OFF_260325120000',
+                        },
+                        {
+                            type: 'number',
+                            name: 'data-price',
+                            label: 'Price (cents)',
+                            placeholder: '4999',
+                            min: 0,
+                        },
+                        {
+                            type: 'text',
+                            name: 'data-funnel-name',
+                            label: 'Funnel Name',
+                            placeholder: 'spring-launch',
+                        },
+                        {
+                            type: 'text',
+                            name: 'data-step',
+                            label: 'Funnel Step',
+                            placeholder: 'checkout',
+                        },
+                        {
+                            type: 'text',
+                            name: 'data-redirect',
+                            label: 'Redirect URL (on success)',
+                            placeholder: '/thank-you',
+                        },
+                        {
+                            type: 'text',
+                            name: 'data-stripe-key',
+                            label: 'Stripe Publishable Key',
+                            placeholder: 'pk_test_...',
+                        },
+                    ],
+                },
+            },
+        });
+
         bm.add('vsl-section', {
             label: 'Video Sales Letter',
             category: 'Sales',
@@ -1723,7 +2291,7 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
             label: 'Checkout Form',
             category: 'Checkout',
             attributes: { title: 'Full checkout — contact, payment, shipping/billing. Posts to webhook.' },
-            content: `<div data-module="form" data-endpoint="" data-type="checkout" style="max-width:500px;margin:1rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:1.5rem;">
+            content: `<div data-module="form" data-endpoint="https://n8n.carltonaiservices.com/webhook/page-form" data-type="checkout" style="max-width:500px;margin:1rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:1.5rem;">
                 <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.125rem;font-weight:700;margin-bottom:1.25rem;">Complete Your Order</h3>
                 <form style="display:flex;flex-direction:column;gap:0.75rem;" onsubmit="return false;">
                     <!-- Contact Info -->
@@ -1735,15 +2303,11 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
                     <input type="email" name="email" placeholder="Email Address" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
                     <input type="tel" name="phone" placeholder="Phone Number" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
 
-                    <!-- Payment -->
+                    <!-- Payment (Stripe.js secure card element) -->
                     <hr style="border:none;border-top:1px solid #2A2E3D;margin:0.25rem 0;">
                     <div style="font-family:'Chakra Petch',system-ui;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#8A95A9;margin-bottom:-0.25rem;display:flex;align-items:center;gap:0.4rem;"><span style="color:#06D6A0;">&#128274;</span> Payment Details</div>
-                    <input type="text" name="card_number" placeholder="Card Number" maxlength="19" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
-                        <input type="text" name="card_expiry" placeholder="MM / YY" maxlength="7" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;font-family:'JetBrains Mono',monospace;">
-                        <input type="text" name="card_cvv" placeholder="CVV" maxlength="4" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;font-family:'JetBrains Mono',monospace;">
-                    </div>
-                    <input type="text" name="card_name" placeholder="Name on Card" style="padding:0.65rem 0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;color:#E8ECF1;font-size:0.8rem;outline:none;width:100%;box-sizing:border-box;">
+                    <div id="card-element" style="padding:0.75rem;background:rgba(255,255,255,0.03);border:1px solid #2A2E3D;border-radius:0.375rem;min-height:40px;"><span style="color:#525E73;font-size:0.75rem;">Stripe card element loads here</span></div>
+                    <div id="card-errors" style="color:#FF6B6B;font-size:0.75rem;min-height:1rem;"></div>
 
                     <!-- Shipping Address -->
                     <hr style="border:none;border-top:1px solid #2A2E3D;margin:0.25rem 0;">
@@ -1824,6 +2388,142 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
             </div>`,
         });
 
+        bm.add('confirmation-page', {
+            label: 'Confirmation Page',
+            category: 'Checkout',
+            attributes: { title: 'Order confirmation — auto-populates with purchase data from session' },
+            content: `<div data-module="confirmation" style="max-width:600px;margin:3rem auto;padding:2.5rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;text-align:center;">
+                <div style="width:64px;height:64px;margin:0 auto 1.25rem;background:rgba(6,214,160,0.12);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.75rem;">&#10003;</div>
+                <h2 style="font-family:'Chakra Petch',system-ui;font-size:1.75rem;font-weight:700;margin-bottom:0.5rem;">Thank You!</h2>
+                <p style="color:#8A95A9;font-size:0.9rem;margin-bottom:0.25rem;">Your order has been confirmed.</p>
+                <p style="color:#525E73;font-size:0.8rem;margin-bottom:2rem;" data-confirmation="order-id">Order ID: loading...</p>
+                <div style="text-align:left;background:rgba(255,255,255,0.02);border:1px solid #2A2E3D;border-radius:0.5rem;padding:1.25rem;margin-bottom:1.5rem;">
+                    <h4 style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.85rem;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #2A2E3D;">Order Summary</h4>
+                    <div data-confirmation="line-items" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#8A95A9;"><span>Loading items...</span><span></span></div>
+                    </div>
+                    <div style="border-top:1px solid #2A2E3D;padding-top:0.75rem;display:flex;justify-content:space-between;font-size:0.95rem;">
+                        <span style="font-family:'Chakra Petch',system-ui;font-weight:600;">Total</span>
+                        <span style="font-family:'Chakra Petch',system-ui;font-weight:700;color:#06D6A0;" data-confirmation="total">$0.00</span>
+                    </div>
+                </div>
+                <div style="background:rgba(6,214,160,0.04);border:1px solid rgba(6,214,160,0.15);border-radius:0.5rem;padding:1.25rem;text-align:left;">
+                    <h4 style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.85rem;margin-bottom:0.5rem;">What's Next</h4>
+                    <p style="color:#8A95A9;font-size:0.8rem;line-height:1.6;">Check your email for your receipt and access instructions. If you have any questions, reply to the confirmation email.</p>
+                </div>
+            </div>`,
+        });
+
+        // ══════════════════════════════════════
+        // ACCOUNT MANAGEMENT
+        // ══════════════════════════════════════
+
+        bm.add('subscription-status', {
+            label: 'Subscription Status',
+            category: 'Account',
+            attributes: { title: 'Shows plan name, price, billing date, and status — fetches from Stripe via token' },
+            content: `<div data-module="account" data-type="subscription-status" data-endpoint="https://n8n.carltonaiservices.com/webhook/stripe-manage" style="max-width:520px;margin:2rem auto;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;padding:1.75rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+                    <h3 style="font-family:'Chakra Petch',system-ui;font-size:1rem;font-weight:700;">Your Subscription</h3>
+                    <span data-account="status-badge" style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;font-weight:600;padding:0.25rem 0.6rem;border-radius:9999px;background:rgba(6,214,160,0.12);color:#06D6A0;letter-spacing:0.03em;">ACTIVE</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1.25rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="color:#8A95A9;font-size:0.8rem;">Plan</span>
+                        <span data-account="plan-name" style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.85rem;color:#E8ECF1;">Loading...</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="color:#8A95A9;font-size:0.8rem;">Price</span>
+                        <span data-account="plan-price" style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.85rem;color:#E8ECF1;">—</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="color:#8A95A9;font-size:0.8rem;">Next billing date</span>
+                        <span data-account="next-billing" style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#E8ECF1;">—</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="color:#8A95A9;font-size:0.8rem;">Member since</span>
+                        <span data-account="member-since" style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#525E73;">—</span>
+                    </div>
+                </div>
+                <div style="border-top:1px solid #2A2E3D;padding-top:1rem;">
+                    <div data-account="status-message" style="font-size:0.78rem;color:#8A95A9;line-height:1.5;"></div>
+                </div>
+            </div>`,
+        });
+
+        bm.add('pause-billing', {
+            label: 'Pause Billing',
+            category: 'Account',
+            attributes: { title: 'Friendly pause prompt — the #1 retention hack. Offer before cancel.' },
+            content: `<div data-module="account" data-type="pause-billing" data-endpoint="https://n8n.carltonaiservices.com/webhook/stripe-manage" style="max-width:520px;margin:1rem auto;padding:1.25rem 1.5rem;background:rgba(255,217,61,0.04);border:1px solid rgba(255,217,61,0.15);border-radius:0.75rem;">
+                <div style="display:flex;align-items:flex-start;gap:1rem;">
+                    <div style="flex-shrink:0;width:40px;height:40px;border-radius:0.5rem;background:rgba(255,217,61,0.1);display:flex;align-items:center;justify-content:center;font-size:1.25rem;">&#9208;</div>
+                    <div style="flex:1;">
+                        <h4 style="font-family:'Chakra Petch',system-ui;font-weight:600;font-size:0.9rem;margin-bottom:0.35rem;color:#E8ECF1;">Need a break?</h4>
+                        <p style="color:#8A95A9;font-size:0.8rem;line-height:1.6;margin-bottom:1rem;">Pause your billing instead of canceling. Your account stays safe and you can pick back up anytime — no setup needed.</p>
+                        <button data-account-action="pause" style="padding:0.6rem 1.25rem;background:rgba(255,217,61,0.12);color:#FFD93D;border:1px solid rgba(255,217,61,0.25);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.8rem;font-family:'Chakra Petch',system-ui;transition:opacity 0.15s;">Pause My Billing</button>
+                        <button data-account-action="resume" style="display:none;padding:0.6rem 1.25rem;background:rgba(6,214,160,0.12);color:#06D6A0;border:1px solid rgba(6,214,160,0.25);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.8rem;font-family:'Chakra Petch',system-ui;transition:opacity 0.15s;">Resume My Billing</button>
+                    </div>
+                </div>
+            </div>`,
+        });
+
+        bm.add('cancel-subscription', {
+            label: 'Cancel Subscription',
+            category: 'Account',
+            attributes: { title: 'Clean, visible cancel — no guilt trips, no exit maze. Shows remaining access.' },
+            content: `<div data-module="account" data-type="cancel-subscription" data-endpoint="https://n8n.carltonaiservices.com/webhook/stripe-manage" style="max-width:520px;margin:1rem auto;padding:1.25rem 1.5rem;background:rgba(17,19,26,0.6);border:1px solid #2A2E3D;border-radius:0.75rem;">
+                <div data-account="cancel-section">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <span style="color:#8A95A9;font-size:0.8rem;">Want to cancel?</span>
+                        <button data-account-action="cancel" style="padding:0.5rem 1rem;background:transparent;color:#FF6B6B;border:1px solid rgba(255,107,107,0.25);border-radius:0.375rem;font-weight:500;cursor:pointer;font-size:0.78rem;font-family:'Chakra Petch',system-ui;transition:opacity 0.15s;">Cancel Subscription</button>
+                    </div>
+                </div>
+                <!-- Cancel confirmation modal (hidden by default) -->
+                <div data-account="cancel-confirm" style="display:none;margin-top:1rem;padding:1rem;background:rgba(255,107,107,0.04);border:1px solid rgba(255,107,107,0.15);border-radius:0.5rem;">
+                    <p style="font-size:0.85rem;color:#E8ECF1;margin-bottom:0.25rem;font-weight:500;">Are you sure?</p>
+                    <p style="font-size:0.78rem;color:#8A95A9;margin-bottom:1rem;">You'll still have full access until <span data-account="access-until" style="color:#E8ECF1;font-weight:600;">your billing period ends</span>.</p>
+                    <div style="display:flex;gap:0.5rem;">
+                        <button data-account-action="confirm-cancel" style="padding:0.5rem 1rem;background:rgba(255,107,107,0.12);color:#FF6B6B;border:1px solid rgba(255,107,107,0.25);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.78rem;font-family:'Chakra Petch',system-ui;">Yes, Cancel</button>
+                        <button data-account-action="cancel-back" style="padding:0.5rem 1rem;background:rgba(255,255,255,0.04);color:#8A95A9;border:1px solid #2A2E3D;border-radius:0.375rem;font-weight:500;cursor:pointer;font-size:0.78rem;font-family:'Chakra Petch',system-ui;">Go Back</button>
+                    </div>
+                </div>
+                <!-- Post-cancel state (hidden by default) -->
+                <div data-account="cancel-done" style="display:none;margin-top:1rem;">
+                    <p style="font-size:0.85rem;color:#E8ECF1;margin-bottom:0.5rem;">Subscription cancelled.</p>
+                    <p style="font-size:0.78rem;color:#8A95A9;margin-bottom:0.75rem;">You still have access until <span data-account="access-until-done" style="color:#E8ECF1;font-weight:600;"></span>.</p>
+                    <button data-account-action="reactivate" style="padding:0.5rem 1rem;background:rgba(6,214,160,0.12);color:#06D6A0;border:1px solid rgba(6,214,160,0.25);border-radius:0.375rem;font-weight:600;cursor:pointer;font-size:0.78rem;font-family:'Chakra Petch',system-ui;">Changed your mind? Reactivate</button>
+                </div>
+            </div>`,
+        });
+
+        bm.add('manage-payment', {
+            label: 'Update Payment',
+            category: 'Account',
+            attributes: { title: 'Redirects to Stripe portal for PCI-compliant card updates' },
+            content: `<div data-module="account" data-type="manage-payment" data-endpoint="https://n8n.carltonaiservices.com/webhook/stripe-manage" style="max-width:520px;margin:1rem auto;padding:1.25rem 1.5rem;background:rgba(17,19,26,0.6);border:1px solid #2A2E3D;border-radius:0.75rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <span style="color:#8A95A9;font-size:0.8rem;">Payment method</span>
+                        <div data-account="payment-display" style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#525E73;margin-top:0.25rem;">**** **** **** ****</div>
+                    </div>
+                    <button data-account-action="update-payment" style="padding:0.5rem 1rem;background:rgba(76,201,240,0.1);color:#4CC9F0;border:1px solid rgba(76,201,240,0.2);border-radius:0.375rem;font-weight:500;cursor:pointer;font-size:0.78rem;font-family:'Chakra Petch',system-ui;transition:opacity 0.15s;">Update Payment Method</button>
+                </div>
+            </div>`,
+        });
+
+        bm.add('reactivation-cta', {
+            label: 'Reactivation CTA',
+            category: 'Account',
+            attributes: { title: 'Welcome-back prompt for paused or cancelled subscribers' },
+            content: `<div data-module="account" data-type="reactivation" data-endpoint="https://n8n.carltonaiservices.com/webhook/stripe-manage" style="max-width:520px;margin:2rem auto;padding:2rem;background:linear-gradient(135deg,rgba(6,214,160,0.06) 0%,rgba(76,201,240,0.06) 100%);border:1px solid rgba(6,214,160,0.15);border-radius:0.75rem;text-align:center;">
+                <div style="font-size:1.75rem;margin-bottom:0.75rem;">&#128075;</div>
+                <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.125rem;font-weight:700;margin-bottom:0.5rem;">Welcome Back</h3>
+                <p style="color:#8A95A9;font-size:0.85rem;line-height:1.6;margin-bottom:1.25rem;max-width:360px;margin-left:auto;margin-right:auto;">Ready to pick up where you left off? Reactivate your subscription and get instant access again.</p>
+                <button data-account-action="reactivate" style="padding:0.75rem 2rem;background:rgba(6,214,160,0.15);color:#06D6A0;border:1px solid rgba(6,214,160,0.3);border-radius:0.5rem;font-weight:700;cursor:pointer;font-size:0.9rem;font-family:'Chakra Petch',system-ui;text-transform:uppercase;letter-spacing:0.03em;">Reactivate My Subscription</button>
+            </div>`,
+        });
+
         // ══════════════════════════════════════
         // UPSELL / DOWNSELL
         // ══════════════════════════════════════
@@ -1832,7 +2532,7 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
             label: 'One-Time Offer',
             category: 'Upsell / Offers',
             attributes: { title: 'Upsell box — strikethrough price + urgency + Yes/No buttons' },
-            content: `<div data-module="form" data-endpoint="" data-type="upsell" style="max-width:560px;margin:2rem auto;padding:2rem;background:rgba(17,19,26,0.8);border:2px solid rgba(255,217,61,0.3);border-radius:0.75rem;text-align:center;">
+            content: `<div data-module="form" data-endpoint="https://n8n.carltonaiservices.com/webhook/page-form" data-type="upsell" style="max-width:560px;margin:2rem auto;padding:2rem;background:rgba(17,19,26,0.8);border:2px solid rgba(255,217,61,0.3);border-radius:0.75rem;text-align:center;">
                 <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:#FFD93D;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;">&#9200; One-Time Offer — This Page Only</div>
                 <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.5rem;font-weight:700;margin-bottom:0.5rem;">Upgrade Your Order</h3>
                 <p style="color:#8A95A9;font-size:0.9rem;line-height:1.6;margin-bottom:1.25rem;">Get the premium package with everything included. This special price is <strong style="color:#FFD93D;">only available right now</strong>.</p>
@@ -1848,7 +2548,7 @@ document.addEventListener('click',function(e){var q=e.target.closest('.faq-q');i
             label: 'Downsell Card',
             category: 'Upsell / Offers',
             attributes: { title: 'Reduced offer — "Not ready? Get X instead for less"' },
-            content: `<div data-module="form" data-endpoint="" data-type="downsell" style="max-width:480px;margin:2rem auto;padding:1.75rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;text-align:center;">
+            content: `<div data-module="form" data-endpoint="https://n8n.carltonaiservices.com/webhook/page-form" data-type="downsell" style="max-width:480px;margin:2rem auto;padding:1.75rem;background:rgba(17,19,26,0.8);border:1px solid #2A2E3D;border-radius:0.75rem;text-align:center;">
                 <h3 style="font-family:'Chakra Petch',system-ui;font-size:1.125rem;font-weight:700;margin-bottom:0.5rem;">Wait — Here's a Lighter Option</h3>
                 <p style="color:#8A95A9;font-size:0.85rem;line-height:1.5;margin-bottom:1.25rem;">Not ready for the full package? Get the essentials at a reduced price.</p>
                 <div style="margin-bottom:1.25rem;"><span style="font-family:'Chakra Petch',system-ui;font-size:1.75rem;font-weight:700;color:#4CC9F0;">$27</span> <span style="color:#525E73;font-size:0.8rem;">one-time</span></div>
